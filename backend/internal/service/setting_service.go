@@ -561,6 +561,9 @@ func (s *SettingService) GetAllSettings(ctx context.Context) (*SystemSettings, e
 	if err != nil {
 		return nil, fmt.Errorf("get all settings: %w", err)
 	}
+	if err := s.backfillLegacyDefaultSiteNameInSettings(ctx, settings); err != nil {
+		return nil, err
+	}
 
 	return s.parseSettings(settings), nil
 }
@@ -647,6 +650,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 	if err != nil {
 		return nil, fmt.Errorf("get public settings: %w", err)
 	}
+	if err := s.backfillLegacyDefaultSiteNameInSettings(ctx, settings); err != nil {
+		return nil, err
+	}
 
 	linuxDoEnabled := false
 	if raw, ok := settings[SettingKeyLinuxDoConnectEnabled]; ok {
@@ -708,7 +714,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		LoginAgreementDocuments:          loginAgreementDocuments,
 		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
-		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
+		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, defaultSiteName),
 		SiteLogo:                         settings[SettingKeySiteLogo],
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
@@ -2141,11 +2147,7 @@ func (s *SettingService) IsTotpEncryptionKeyConfigured() bool {
 
 // GetSiteName 获取网站名称
 func (s *SettingService) GetSiteName(ctx context.Context) string {
-	value, err := s.settingRepo.GetValue(ctx, SettingKeySiteName)
-	if err != nil || value == "" {
-		return "Sub2API"
-	}
-	return value
+	return siteNameFromSettingRepo(ctx, s.settingRepo)
 }
 
 // GetDefaultConcurrency 获取默认并发量
@@ -2292,6 +2294,9 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 	// 检查是否已有设置
 	_, err := s.settingRepo.GetValue(ctx, SettingKeyRegistrationEnabled)
 	if err == nil {
+		if err := s.backfillLegacyDefaultSiteName(ctx); err != nil {
+			return err
+		}
 		// 已有设置，不需要初始化
 		return nil
 	}
@@ -2324,7 +2329,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyLoginAgreementMode:                       defaultLoginAgreementMode,
 		SettingKeyLoginAgreementUpdatedAt:                  defaultLoginAgreementDate,
 		SettingKeyLoginAgreementDocuments:                  loginAgreementDocumentsJSON,
-		SettingKeySiteName:                                 "Sub2API",
+		SettingKeySiteName:                                 defaultSiteName,
 		SettingKeySiteLogo:                                 "",
 		SettingKeyPurchaseSubscriptionEnabled:              "false",
 		SettingKeyPurchaseSubscriptionURL:                  "",
@@ -2469,6 +2474,43 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 	return s.settingRepo.SetMultiple(ctx, defaults)
 }
 
+func (s *SettingService) backfillLegacyDefaultSiteName(ctx context.Context) error {
+	siteName, err := s.settingRepo.GetValue(ctx, SettingKeySiteName)
+	if err != nil || siteName != legacyDefaultSiteName {
+		return nil
+	}
+	return s.settingRepo.Set(ctx, SettingKeySiteName, defaultSiteName)
+}
+
+func (s *SettingService) backfillLegacyDefaultSiteNameInSettings(ctx context.Context, settings map[string]string) error {
+	if settings[SettingKeySiteName] != legacyDefaultSiteName {
+		return nil
+	}
+	if err := s.settingRepo.Set(ctx, SettingKeySiteName, defaultSiteName); err != nil {
+		return err
+	}
+	settings[SettingKeySiteName] = defaultSiteName
+	return nil
+}
+
+func siteNameFromSettingRepo(ctx context.Context, repo SettingRepository) string {
+	if repo == nil {
+		return defaultSiteName
+	}
+	value, err := repo.GetValue(ctx, SettingKeySiteName)
+	if err != nil || strings.TrimSpace(value) == "" {
+		return defaultSiteName
+	}
+	value = strings.TrimSpace(value)
+	if value == legacyDefaultSiteName {
+		if err := repo.Set(ctx, SettingKeySiteName, defaultSiteName); err != nil {
+			return defaultSiteName
+		}
+		return defaultSiteName
+	}
+	return value
+}
+
 // parseSettings 解析设置到结构体
 func (s *SettingService) parseSettings(settings map[string]string) *SystemSettings {
 	emailVerifyEnabled := settings[SettingKeyEmailVerifyEnabled] == "true"
@@ -2499,7 +2541,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
 		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
-		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
+		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, defaultSiteName),
 		SiteLogo:                         settings[SettingKeySiteLogo],
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],

@@ -278,6 +278,7 @@ describe('useAppStore', () => {
       const result = store.initFromInjectedConfig()
 
       expect(result).toBe(false)
+      expect(store.siteName).toBe('Laffey API')
       expect(store.publicSettingsLoaded).toBe(false)
     })
 

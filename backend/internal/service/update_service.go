@@ -2,6 +2,7 @@ package service
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bufio"
 	"compress/gzip"
 	"context"
@@ -22,7 +23,7 @@ import (
 const (
 	updateCacheKey = "update_check_cache"
 	updateCacheTTL = 1200 // 20 minutes
-	githubRepo     = "Wei-Shaw/sub2api"
+	githubRepo     = "desalahy/Sub2api_laffey"
 
 	// Security: allowed download domains for updates
 	allowedDownloadHost = "github.com"
@@ -140,6 +141,10 @@ func (s *UpdateService) CheckUpdate(ctx context.Context, force bool) (*UpdateInf
 // PerformUpdate downloads and applies the update
 // Uses atomic file replacement pattern for safe in-place updates
 func (s *UpdateService) PerformUpdate(ctx context.Context) error {
+	if err := validateSelfUpdateSupported(runtime.GOOS); err != nil {
+		return err
+	}
+
 	info, err := s.CheckUpdate(ctx, true)
 	if err != nil {
 		return err
@@ -251,6 +256,10 @@ func (s *UpdateService) PerformUpdate(ctx context.Context) error {
 
 // Rollback restores the previous version
 func (s *UpdateService) Rollback() error {
+	if err := validateSelfUpdateSupported(runtime.GOOS); err != nil {
+		return err
+	}
+
 	exePath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get executable path: %w", err)
@@ -314,6 +323,13 @@ func (s *UpdateService) getArchiveName() string {
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
 	return fmt.Sprintf("%s_%s", osName, arch)
+}
+
+func validateSelfUpdateSupported(goos string) error {
+	if goos == "windows" {
+		return fmt.Errorf("self-update is not supported on Windows; download and replace the release binary manually")
+	}
+	return nil
 }
 
 // validateDownloadURL checks if the URL is from an allowed domain
@@ -380,6 +396,53 @@ func (s *UpdateService) verifyChecksum(ctx context.Context, filePath, checksumUR
 }
 
 func (s *UpdateService) extractBinary(archivePath, destPath string) error {
+	const maxBinarySize = 500 * 1024 * 1024
+
+	if strings.HasSuffix(strings.ToLower(archivePath), ".zip") {
+		zr, err := zip.OpenReader(archivePath)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = zr.Close() }()
+
+		for _, file := range zr.File {
+			if strings.Contains(file.Name, "..") {
+				return fmt.Errorf("path traversal attempt detected: %s", file.Name)
+			}
+			baseName := filepath.Base(file.Name)
+			if baseName != "sub2api" && baseName != "sub2api.exe" {
+				continue
+			}
+			if file.FileInfo().IsDir() {
+				continue
+			}
+			if file.UncompressedSize64 > maxBinarySize {
+				return fmt.Errorf("binary too large: %d bytes (max %d)", file.UncompressedSize64, maxBinarySize)
+			}
+
+			rc, err := file.Open()
+			if err != nil {
+				return err
+			}
+			out, err := os.Create(destPath)
+			if err != nil {
+				_ = rc.Close()
+				return err
+			}
+			if _, err := io.Copy(out, io.LimitReader(rc, maxBinarySize)); err != nil {
+				_ = rc.Close()
+				_ = out.Close()
+				return err
+			}
+			if err := rc.Close(); err != nil {
+				_ = out.Close()
+				return err
+			}
+			return out.Close()
+		}
+		return fmt.Errorf("binary not found in archive")
+	}
+
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return err
@@ -427,7 +490,6 @@ func (s *UpdateService) extractBinary(archivePath, destPath string) error {
 			// Only extract the specific binary we need
 			if baseName == "sub2api" || baseName == "sub2api.exe" {
 				// Additional security: limit file size (max 500MB)
-				const maxBinarySize = 500 * 1024 * 1024
 				if hdr.Size > maxBinarySize {
 					return fmt.Errorf("binary too large: %d bytes (max %d)", hdr.Size, maxBinarySize)
 				}
@@ -453,7 +515,6 @@ func (s *UpdateService) extractBinary(archivePath, destPath string) error {
 	}
 
 	// Direct copy for non-tar files (with size limit)
-	const maxBinarySize = 500 * 1024 * 1024
 	out, err := os.Create(destPath)
 	if err != nil {
 		return err

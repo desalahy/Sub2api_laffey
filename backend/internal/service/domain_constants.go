@@ -2,6 +2,9 @@ package service
 
 import "github.com/Wei-Shaw/sub2api/internal/domain"
 
+const defaultSiteName = "Laffey API"
+const legacyDefaultSiteName = "Sub2API"
+
 // Status constants
 const (
 	StatusActive   = domain.StatusActive

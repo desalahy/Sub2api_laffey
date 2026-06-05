@@ -1,18 +1,18 @@
 # =============================================================================
-# Sub2API Docker Compose - Standalone Configuration
+# Laffey API Docker Compose - Standalone Configuration
 # =============================================================================
-# This configuration runs only the Sub2API application.
+# This configuration runs only the Laffey API application.
 # PostgreSQL and Redis must be provided externally.
 #
 # Usage:
 #   1. Copy .env.example to .env and configure database/redis connection
-#   2. docker-compose -f docker-compose.standalone.yml up -d
+#   2. docker compose -f docker-compose.standalone.yml up -d
 #   3. Access: http://localhost:8080
 # =============================================================================
 
 services:
   sub2api:
-    image: weishaw/sub2api:latest
+    image: ghcr.io/desalahy/sub2api_laffey:latest
     container_name: sub2api
     restart: unless-stopped
     ulimits:
@@ -67,7 +67,7 @@ services:
       # =======================================================================
       # Admin Account (auto-created on first run)
       # =======================================================================
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@sub2api.local}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@laffey.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
 
       # =======================================================================

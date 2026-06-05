@@ -87,3 +87,13 @@ func TestWriteConfigFileKeepsDefaultUserConcurrency(t *testing.T) {
 		t.Fatalf("config missing default user concurrency, got:\n%s", string(data))
 	}
 }
+
+func TestSetupConfigFromEnvUsesLaffeyDefaultAdminEmail(t *testing.T) {
+	t.Setenv("ADMIN_EMAIL", "")
+
+	cfg := setupConfigFromEnv()
+
+	if cfg.Admin.Email != "admin@laffey.local" {
+		t.Fatalf("default admin email=%q, want %q", cfg.Admin.Email, "admin@laffey.local")
+	}
+}

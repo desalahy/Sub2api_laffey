@@ -72,6 +72,17 @@ func (r *contentModerationTestSettingRepo) Delete(ctx context.Context, key strin
 	return nil
 }
 
+func TestContentModerationSiteNameBackfillsLegacyDefault(t *testing.T) {
+	ctx := context.Background()
+	repo := &contentModerationTestSettingRepo{values: map[string]string{
+		SettingKeySiteName: legacyDefaultSiteName,
+	}}
+	svc := &ContentModerationService{settingRepo: repo}
+
+	require.Equal(t, defaultSiteName, svc.siteName(ctx))
+	require.Equal(t, defaultSiteName, repo.values[SettingKeySiteName])
+}
+
 type contentModerationTestRepo struct {
 	logs []ContentModerationLog
 }

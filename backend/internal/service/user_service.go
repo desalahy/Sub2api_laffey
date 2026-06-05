@@ -1170,12 +1170,7 @@ func saveNotifyVerifyCode(ctx context.Context, cache EmailCache, email, code str
 
 // sendNotifyVerifyEmail builds and sends the verification email.
 func (s *UserService) sendNotifyVerifyEmail(ctx context.Context, emailService *EmailService, email, code string) error {
-	siteName := "Sub2API"
-	if s.settingRepo != nil {
-		if name, err := s.settingRepo.GetValue(ctx, SettingKeySiteName); err == nil && name != "" {
-			siteName = name
-		}
-	}
+	siteName := siteNameFromSettingRepo(ctx, s.settingRepo)
 	subject := fmt.Sprintf("[%s] 通知邮箱验证码 / Notification Email Verification", siteName)
 	body := buildNotifyVerifyEmailBody(code, siteName)
 	return emailService.SendEmail(ctx, email, subject, body)

@@ -21,8 +21,6 @@ const (
 	quotaDimDaily  = "daily"
 	quotaDimWeekly = "weekly"
 	quotaDimTotal  = "total"
-
-	defaultSiteName = "Sub2API"
 )
 
 // quotaDimLabels maps dimension names to display labels.
@@ -288,11 +286,7 @@ func (s *BalanceNotifyService) getAccountQuotaNotifyEmails(ctx context.Context) 
 
 // getSiteName reads site name from settings with fallback.
 func (s *BalanceNotifyService) getSiteName(ctx context.Context) string {
-	name, err := s.settingRepo.GetValue(ctx, SettingKeySiteName)
-	if err != nil || name == "" {
-		return defaultSiteName
-	}
-	return name
+	return siteNameFromSettingRepo(ctx, s.settingRepo)
 }
 
 // filterVerifiedEmails returns deduplicated, non-disabled, verified emails.
