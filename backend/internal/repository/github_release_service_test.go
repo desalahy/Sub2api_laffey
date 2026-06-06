@@ -29,6 +29,9 @@ type testTransport struct {
 func (t *testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Rewrite the URL to point to our test server
 	testURL := t.testServerURL + req.URL.Path
+	if req.URL.RawQuery != "" {
+		testURL += "?" + req.URL.RawQuery
+	}
 	newReq, err := http.NewRequestWithContext(req.Context(), req.Method, testURL, req.Body)
 	if err != nil {
 		return nil, err
@@ -207,21 +210,40 @@ func (s *GitHubReleaseServiceSuite) TestFetchChecksumFile_InvalidURL() {
 }
 
 func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Success() {
-	releaseJSON := `{
+	releaseJSON := `[
+	{
+		"tag_name": "v0.1.126-laffey.1",
+		"name": "Laffey API 0.1.126-laffey.1",
+		"body": "Release notes",
+		"html_url": "https://github.com/test/repo/releases/v0.1.126-laffey.1",
+		"draft": false,
+		"prerelease": true,
+		"assets": [
+			{
+				"name": "sub2api_laffey_0.1.126-laffey.1_linux_amd64.tar.gz",
+				"browser_download_url": "https://github.com/test/repo/releases/download/v0.1.126-laffey.1/sub2api_laffey_0.1.126-laffey.1_linux_amd64.tar.gz"
+			}
+		]
+	},
+	{
 		"tag_name": "v1.0.0",
 		"name": "Release 1.0.0",
 		"body": "Release notes",
 		"html_url": "https://github.com/test/repo/releases/v1.0.0",
+		"draft": false,
+		"prerelease": false,
 		"assets": [
 			{
 				"name": "app-linux-amd64.tar.gz",
 				"browser_download_url": "https://github.com/test/repo/releases/download/v1.0.0/app-linux-amd64.tar.gz"
 			}
 		]
-	}`
+	}
+]`
 
 	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(s.T(), "/repos/test/repo/releases/latest", r.URL.Path)
+		require.Equal(s.T(), "/repos/test/repo/releases", r.URL.Path)
+		require.Equal(s.T(), "10", r.URL.Query().Get("per_page"))
 		require.Equal(s.T(), "application/vnd.github.v3+json", r.Header.Get("Accept"))
 		require.Equal(s.T(), "Laffey-API-Updater", r.Header.Get("User-Agent"))
 		w.Header().Set("Content-Type", "application/json")
@@ -239,10 +261,10 @@ func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Success() {
 
 	release, err := s.client.FetchLatestRelease(context.Background(), "test/repo")
 	require.NoError(s.T(), err)
-	require.Equal(s.T(), "v1.0.0", release.TagName)
-	require.Equal(s.T(), "Release 1.0.0", release.Name)
+	require.Equal(s.T(), "v0.1.126-laffey.1", release.TagName)
+	require.Equal(s.T(), "Laffey API 0.1.126-laffey.1", release.Name)
 	require.Len(s.T(), release.Assets, 1)
-	require.Equal(s.T(), "app-linux-amd64.tar.gz", release.Assets[0].Name)
+	require.Equal(s.T(), "sub2api_laffey_0.1.126-laffey.1_linux_amd64.tar.gz", release.Assets[0].Name)
 }
 
 func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Non200() {

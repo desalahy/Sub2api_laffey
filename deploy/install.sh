@@ -483,7 +483,7 @@ check_dependencies() {
 # Get latest release version
 get_latest_version() {
     print_info "$(msg 'fetching_version')"
-    LATEST_VERSION=$(curl -s --connect-timeout 10 --max-time 30 "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" 2>/dev/null | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+    LATEST_VERSION=$(curl -s --connect-timeout 10 --max-time 30 "https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=1" 2>/dev/null | grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
 
     if [ -z "$LATEST_VERSION" ]; then
         print_error "$(msg 'failed_get_version')"

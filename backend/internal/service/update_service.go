@@ -98,6 +98,8 @@ type GitHubRelease struct {
 	Body        string        `json:"body"`
 	PublishedAt string        `json:"published_at"`
 	HTMLURL     string        `json:"html_url"`
+	Draft       bool          `json:"draft"`
+	Prerelease  bool          `json:"prerelease"`
 	Assets      []GitHubAsset `json:"assets"`
 }
 
@@ -572,30 +574,51 @@ func (s *UpdateService) saveToCache(ctx context.Context, info *UpdateInfo) {
 	_ = s.cache.SetUpdateInfo(ctx, string(data), time.Duration(updateCacheTTL)*time.Second)
 }
 
-// compareVersions compares two semantic versions
+// compareVersions compares release versions, including fork suffixes like 0.1.126-laffey.2.
 func compareVersions(current, latest string) int {
-	currentParts := parseVersion(current)
-	latestParts := parseVersion(latest)
+	currentParts := parseVersionNumbers(current)
+	latestParts := parseVersionNumbers(latest)
+	maxLen := len(currentParts)
+	if len(latestParts) > maxLen {
+		maxLen = len(latestParts)
+	}
 
-	for i := 0; i < 3; i++ {
-		if currentParts[i] < latestParts[i] {
+	for i := 0; i < maxLen; i++ {
+		currentPart := 0
+		if i < len(currentParts) {
+			currentPart = currentParts[i]
+		}
+		latestPart := 0
+		if i < len(latestParts) {
+			latestPart = latestParts[i]
+		}
+
+		if currentPart < latestPart {
 			return -1
 		}
-		if currentParts[i] > latestParts[i] {
+		if currentPart > latestPart {
 			return 1
 		}
 	}
 	return 0
 }
 
-func parseVersion(v string) [3]int {
+func parseVersionNumbers(v string) []int {
 	v = strings.TrimPrefix(v, "v")
-	parts := strings.Split(v, ".")
-	result := [3]int{0, 0, 0}
-	for i := 0; i < len(parts) && i < 3; i++ {
-		if parsed, err := strconv.Atoi(parts[i]); err == nil {
-			result[i] = parsed
+	parts := strings.FieldsFunc(v, func(r rune) bool {
+		return r < '0' || r > '9'
+	})
+	result := make([]int, 0, len(parts))
+	for _, part := range parts {
+		if part == "" {
+			continue
 		}
+		if parsed, err := strconv.Atoi(part); err == nil {
+			result = append(result, parsed)
+		}
+	}
+	if len(result) == 0 {
+		return []int{0}
 	}
 	return result
 }
