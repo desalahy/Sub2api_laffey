@@ -11,6 +11,8 @@ export interface OnboardingOptions {
   autoStart?: boolean
 }
 
+const FRONTEND_PREVIEW_MODE = import.meta.env.VITE_FRONTEND_PREVIEW === '1'
+
 export function useOnboardingTour(options: OnboardingOptions) {
   const { t } = useI18n()
   const userStore = useUserStore()
@@ -65,6 +67,10 @@ export function useOnboardingTour(options: OnboardingOptions) {
   }
 
   const hasSeen = () => {
+    if (FRONTEND_PREVIEW_MODE) {
+      return true
+    }
+
     return localStorage.getItem(getStorageKey()) === 'true'
   }
 

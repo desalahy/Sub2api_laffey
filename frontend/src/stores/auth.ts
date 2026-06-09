@@ -15,6 +15,10 @@ const TOKEN_EXPIRES_AT_KEY = 'token_expires_at' // 存储过期时间戳而非�
 const PENDING_AUTH_SESSION_KEY = 'pending_auth_session'
 const AUTO_REFRESH_INTERVAL = 60 * 1000 // 60 seconds for user data refresh
 const TOKEN_REFRESH_BUFFER = 120 * 1000 // 120 seconds before expiry to refresh token
+const FRONTEND_PREVIEW_MODE = import.meta.env.VITE_FRONTEND_PREVIEW === '1'
+const PREVIEW_AUTH_TOKEN = 'preview-access-token'
+const PREVIEW_REFRESH_TOKEN = 'preview-refresh-token'
+const PREVIEW_TOKEN_EXPIRES_IN = 24 * 60 * 60
 
 type PendingAuthTokenField = 'pending_auth_token' | 'pending_oauth_token'
 
@@ -68,6 +72,26 @@ function clearPendingAuthSessionStorage(): void {
   localStorage.removeItem(PENDING_AUTH_SESSION_KEY)
 }
 
+function createPreviewUser(): User {
+  const now = new Date().toISOString()
+
+  return {
+    id: 1,
+    username: 'Preview Admin',
+    email: 'preview@example.com',
+    role: 'admin',
+    balance: 9999,
+    concurrency: 100,
+    status: 'active',
+    allowed_groups: null,
+    balance_notify_enabled: false,
+    balance_notify_threshold: null,
+    balance_notify_extra_emails: [],
+    created_at: now,
+    updated_at: now
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
   // ==================== State ====================
 
@@ -94,6 +118,39 @@ export const useAuthStore = defineStore('auth', () => {
   const hasPendingAuthSession = computed(() => pendingAuthSession.value !== null)
 
   // ==================== Actions ====================
+
+  function setPreviewAuthState(): User {
+    const previewUser = createPreviewUser()
+    const expiresAt = Date.now() + PREVIEW_TOKEN_EXPIRES_IN * 1000
+
+    token.value = PREVIEW_AUTH_TOKEN
+    refreshTokenValue.value = PREVIEW_REFRESH_TOKEN
+    tokenExpiresAt.value = expiresAt
+    runMode.value = 'standard'
+    user.value = previewUser
+    pendingAuthSession.value = null
+
+    localStorage.setItem(AUTH_TOKEN_KEY, PREVIEW_AUTH_TOKEN)
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(previewUser))
+    localStorage.setItem(REFRESH_TOKEN_KEY, PREVIEW_REFRESH_TOKEN)
+    localStorage.setItem(TOKEN_EXPIRES_AT_KEY, String(expiresAt))
+    clearPendingAuthSessionStorage()
+
+    return previewUser
+  }
+
+  function createPreviewAuthResponse(): AuthResponse {
+    return {
+      access_token: PREVIEW_AUTH_TOKEN,
+      refresh_token: PREVIEW_REFRESH_TOKEN,
+      expires_in: PREVIEW_TOKEN_EXPIRES_IN,
+      token_type: 'bearer',
+      user: {
+        ...setPreviewAuthState(),
+        run_mode: 'standard'
+      }
+    }
+  }
 
   /**
    * Initialize auth state from localStorage
@@ -132,6 +189,10 @@ export const useAuthStore = defineStore('auth', () => {
         clearAuth({ preservePendingAuthSession: true })
       }
     }
+  }
+
+  function enablePreviewAuth(): User {
+    return setPreviewAuthState()
   }
 
   /**
@@ -202,6 +263,11 @@ export const useAuthStore = defineStore('auth', () => {
    * Perform the actual token refresh
    */
   async function performTokenRefresh(): Promise<void> {
+    if (FRONTEND_PREVIEW_MODE) {
+      setPreviewAuthState()
+      return
+    }
+
     if (!refreshTokenValue.value) {
       return
     }
@@ -238,6 +304,10 @@ export const useAuthStore = defineStore('auth', () => {
    * @throws Error if login fails
    */
   async function login(credentials: LoginRequest): Promise<LoginResponse> {
+    if (FRONTEND_PREVIEW_MODE) {
+      return createPreviewAuthResponse()
+    }
+
     try {
       const response = await authAPI.login(credentials)
 
@@ -318,6 +388,10 @@ export const useAuthStore = defineStore('auth', () => {
    * @throws Error if registration fails
    */
   async function register(userData: RegisterRequest): Promise<User> {
+    if (FRONTEND_PREVIEW_MODE) {
+      return setPreviewAuthState()
+    }
+
     try {
       const response = await authAPI.register(userData)
 
@@ -338,6 +412,10 @@ export const useAuthStore = defineStore('auth', () => {
    * @param newToken - 后端签发的 JWT access token
    */
   async function setToken(newToken: string): Promise<User> {
+    if (FRONTEND_PREVIEW_MODE) {
+      return setPreviewAuthState()
+    }
+
     // Clear any previous state first (avoid mixing sessions)
     // Note: Don't clear localStorage here as OAuth callback may have set refresh_token
     stopAutoRefresh()
@@ -397,6 +475,11 @@ export const useAuthStore = defineStore('auth', () => {
    * Clears all authentication state and persisted data
    */
   async function logout(): Promise<void> {
+    if (FRONTEND_PREVIEW_MODE) {
+      setPreviewAuthState()
+      return
+    }
+
     // Call API logout (revokes refresh token on server)
     await authAPI.logout()
 
@@ -411,6 +494,10 @@ export const useAuthStore = defineStore('auth', () => {
    * @throws Error if not authenticated or request fails
    */
   async function refreshUser(): Promise<User> {
+    if (FRONTEND_PREVIEW_MODE) {
+      return setPreviewAuthState()
+    }
+
     if (!token.value) {
       throw new Error('Not authenticated')
     }
@@ -486,6 +573,7 @@ export const useAuthStore = defineStore('auth', () => {
     setToken,
     logout,
     checkAuth,
+    enablePreviewAuth,
     refreshUser,
     setPendingAuthSession,
     clearPendingAuthSession
