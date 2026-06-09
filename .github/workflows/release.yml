@@ -17,7 +17,7 @@ on:
         default: false
 
 env:
-  SIMPLE_RELEASE: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.simple_release == 'true') || vars.SIMPLE_RELEASE == 'true' }}
+  SIMPLE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.simple_release == 'true' }}
 
 permissions:
   contents: write
