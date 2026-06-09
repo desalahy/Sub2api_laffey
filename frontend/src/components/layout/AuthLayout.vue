@@ -45,8 +45,16 @@
       </div>
 
       <!-- Card Container -->
-      <div class="card-glass rounded-2xl p-8 shadow-glass">
-        <slot />
+      <div class="auth-card-wrap">
+        <img
+          class="auth-laffey-sticker"
+          src="/assets/laffey/chibi/laffey-snack-chibi.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <div class="auth-form-card card-glass relative z-10 rounded-2xl p-8 shadow-glass">
+          <slot />
+        </div>
       </div>
 
       <!-- Footer Links -->
@@ -67,12 +75,15 @@ import { computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores'
 import { DEFAULT_SITE_NAME } from '@/constants/branding'
 import { sanitizeUrl } from '@/utils/url'
+import { useI18n } from 'vue-i18n'
+import { resolveSiteSubtitle } from '@/utils/siteSubtitle'
 
 const appStore = useAppStore()
+const { t } = useI18n()
 
 const siteName = computed(() => appStore.siteName || DEFAULT_SITE_NAME)
 const siteLogo = computed(() => sanitizeUrl(appStore.siteLogo || '', { allowRelative: true, allowDataUrl: true }))
-const siteSubtitle = computed(() => appStore.cachedPublicSettings?.site_subtitle || 'Subscription to API Conversion Platform')
+const siteSubtitle = computed(() => resolveSiteSubtitle(appStore.cachedPublicSettings?.site_subtitle, t))
 const settingsLoaded = computed(() => appStore.publicSettingsLoaded)
 
 const currentYear = computed(() => new Date().getFullYear())
@@ -85,5 +96,88 @@ onMounted(() => {
 <style scoped>
 .text-gradient {
   @apply bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent;
+}
+
+.auth-card-wrap {
+  position: relative;
+}
+
+.auth-card-wrap::before {
+  content: '';
+  position: absolute;
+  right: -18px;
+  top: -18px;
+  width: 118px;
+  height: 118px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.18), transparent 68%);
+  filter: blur(18px);
+  opacity: 0.65;
+}
+
+.auth-card-wrap::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 1px;
+  z-index: 11;
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 90% 6%, rgba(244, 114, 182, 0.13), transparent 24%),
+    radial-gradient(circle at 10% 96%, rgba(20, 184, 166, 0.12), transparent 26%);
+  opacity: 0.72;
+}
+
+.auth-form-card {
+  overflow: hidden;
+}
+
+.auth-laffey-sticker {
+  pointer-events: none;
+  position: absolute;
+  right: -46px;
+  top: -58px;
+  z-index: 20;
+  width: 112px;
+  height: auto;
+  object-fit: contain;
+  opacity: 0.94;
+  transform: rotate(7deg);
+  filter: drop-shadow(0 14px 22px rgba(15, 23, 42, 0.16));
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.auth-card-wrap:hover .auth-laffey-sticker {
+  opacity: 1;
+  transform: rotate(4deg) translateY(-3px);
+}
+
+:deep(.dark) .auth-card-wrap::before {
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.14), transparent 68%);
+  opacity: 0.5;
+}
+
+:deep(.dark) .auth-card-wrap::after {
+  background:
+    radial-gradient(circle at 90% 6%, rgba(244, 114, 182, 0.09), transparent 24%),
+    radial-gradient(circle at 10% 96%, rgba(20, 184, 166, 0.1), transparent 26%);
+  opacity: 0.56;
+}
+
+:deep(.dark) .auth-laffey-sticker {
+  opacity: 0.9;
+  filter: drop-shadow(0 14px 26px rgba(20, 184, 166, 0.18));
+}
+
+@media (max-width: 520px) {
+  .auth-laffey-sticker {
+    display: none;
+  }
+
+  .auth-card-wrap::before {
+    display: none;
+  }
 }
 </style>

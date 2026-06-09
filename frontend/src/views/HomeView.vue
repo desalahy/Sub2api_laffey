@@ -31,6 +31,9 @@
       <div
         class="absolute bottom-1/4 right-1/4 h-64 w-64 rounded-full bg-primary-400/10 blur-3xl"
       ></div>
+      <div class="laffey-home-wash"></div>
+      <div class="laffey-radar-grid"></div>
+      <div class="laffey-wave-lines"></div>
       <div
         class="absolute inset-0 bg-[linear-gradient(rgba(20,184,166,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(20,184,166,0.03)_1px,transparent_1px)] bg-[size:64px_64px]"
       ></div>
@@ -138,37 +141,47 @@
             </div>
           </div>
 
-          <!-- Right: Terminal Animation -->
+          <!-- Right: Laffey Visual + Terminal Animation -->
           <div class="flex flex-1 justify-center lg:justify-end">
-            <div class="terminal-container">
-              <div class="terminal-window">
-                <!-- Window header -->
-                <div class="terminal-header">
-                  <div class="terminal-buttons">
-                    <span class="btn-close"></span>
-                    <span class="btn-minimize"></span>
-                    <span class="btn-maximize"></span>
+            <div class="laffey-hero-visual">
+              <div class="laffey-visual-panel"></div>
+              <div class="laffey-ship-lines" aria-hidden="true"></div>
+              <img
+                class="laffey-hero-character"
+                src="/assets/laffey/chibi/laffey-idol-chibi.png"
+                alt=""
+                aria-hidden="true"
+              />
+              <div class="terminal-container">
+                <div class="terminal-window">
+                  <!-- Window header -->
+                  <div class="terminal-header">
+                    <div class="terminal-buttons">
+                      <span class="btn-close"></span>
+                      <span class="btn-minimize"></span>
+                      <span class="btn-maximize"></span>
+                    </div>
+                    <span class="terminal-title">terminal</span>
                   </div>
-                  <span class="terminal-title">terminal</span>
-                </div>
-                <!-- Terminal content -->
-                <div class="terminal-body">
-                  <div class="code-line line-1">
-                    <span class="code-prompt">$</span>
-                    <span class="code-cmd">curl</span>
-                    <span class="code-flag">-X POST</span>
-                    <span class="code-url">/v1/messages</span>
-                  </div>
-                  <div class="code-line line-2">
-                    <span class="code-comment"># Routing to upstream...</span>
-                  </div>
-                  <div class="code-line line-3">
-                    <span class="code-success">200 OK</span>
-                    <span class="code-response">{ "content": "Hello!" }</span>
-                  </div>
-                  <div class="code-line line-4">
-                    <span class="code-prompt">$</span>
-                    <span class="cursor"></span>
+                  <!-- Terminal content -->
+                  <div class="terminal-body">
+                    <div class="code-line line-1">
+                      <span class="code-prompt">$</span>
+                      <span class="code-cmd">curl</span>
+                      <span class="code-flag">-X POST</span>
+                      <span class="code-url">/v1/messages</span>
+                    </div>
+                    <div class="code-line line-2">
+                      <span class="code-comment"># Routing to upstream...</span>
+                    </div>
+                    <div class="code-line line-3">
+                      <span class="code-success">200 OK</span>
+                      <span class="code-response">{ "content": "Hello!" }</span>
+                    </div>
+                    <div class="code-line line-4">
+                      <span class="code-prompt">$</span>
+                      <span class="cursor"></span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -205,7 +218,7 @@
         </div>
 
         <!-- Features Grid -->
-        <div class="mb-12 grid gap-6 md:grid-cols-3">
+        <div class="grid gap-6 pb-8 md:grid-cols-3">
           <!-- Feature 1: Unified Gateway -->
           <div
             class="group rounded-2xl border border-gray-200/50 bg-white/60 p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 dark:border-dark-700/50 dark:bg-dark-800/60"
@@ -282,93 +295,6 @@
           </div>
         </div>
 
-        <!-- Supported Providers -->
-        <div class="mb-8 text-center">
-          <h2 class="mb-3 text-2xl font-bold text-gray-900 dark:text-white">
-            {{ t('home.providers.title') }}
-          </h2>
-          <p class="text-sm text-gray-600 dark:text-dark-400">
-            {{ t('home.providers.description') }}
-          </p>
-        </div>
-
-        <div class="mb-16 flex flex-wrap items-center justify-center gap-4">
-          <!-- Claude - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-500"
-            >
-              <span class="text-xs font-bold text-white">C</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.claude') }}</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
-          </div>
-          <!-- GPT - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-green-600"
-            >
-              <span class="text-xs font-bold text-white">G</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">GPT</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
-          </div>
-          <!-- Gemini - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600"
-            >
-              <span class="text-xs font-bold text-white">G</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.gemini') }}</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
-          </div>
-          <!-- Antigravity - Supported -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-pink-600"
-            >
-              <span class="text-xs font-bold text-white">A</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.antigravity') }}</span>
-            <span
-              class="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-              >{{ t('home.providers.supported') }}</span
-            >
-          </div>
-          <!-- More - Coming Soon -->
-          <div
-            class="flex items-center gap-2 rounded-xl border border-gray-200/50 bg-white/40 px-5 py-3 opacity-60 backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/40"
-          >
-            <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-gray-500 to-gray-600"
-            >
-              <span class="text-xs font-bold text-white">+</span>
-            </div>
-            <span class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ t('home.providers.more') }}</span>
-            <span
-              class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-dark-700 dark:text-dark-400"
-              >{{ t('home.providers.soon') }}</span
-            >
-          </div>
-        </div>
       </div>
     </main>
 
@@ -411,6 +337,7 @@ import { useAuthStore, useAppStore } from '@/stores'
 import { DEFAULT_SITE_NAME, REPOSITORY_URL } from '@/constants/branding'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { resolveSiteSubtitle } from '@/utils/siteSubtitle'
 
 const { t } = useI18n()
 
@@ -420,7 +347,7 @@ const appStore = useAppStore()
 // Site settings - directly from appStore (already initialized from injected config)
 const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || DEFAULT_SITE_NAME)
 const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
-const siteSubtitle = computed(() => appStore.cachedPublicSettings?.site_subtitle || 'AI API Gateway Platform')
+const siteSubtitle = computed(() => resolveSiteSubtitle(appStore.cachedPublicSettings?.site_subtitle, t))
 const docUrl = computed(() => appStore.cachedPublicSettings?.doc_url || appStore.docUrl || '')
 const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
 
@@ -482,14 +409,146 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.laffey-home-wash {
+  position: absolute;
+  right: -12%;
+  top: 8%;
+  width: min(760px, 60vw);
+  height: min(540px, 56vh);
+  border-radius: 44% 56% 58% 42%;
+  background:
+    radial-gradient(circle at 76% 30%, rgba(244, 114, 182, 0.12), transparent 31%),
+    radial-gradient(circle at 26% 72%, rgba(20, 184, 166, 0.15), transparent 40%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(20, 184, 166, 0.04));
+  filter: blur(10px);
+  opacity: 0.78;
+  transform: rotate(-9deg);
+}
+
+.laffey-radar-grid {
+  position: absolute;
+  right: 4%;
+  top: 14%;
+  width: min(520px, 42vw);
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background:
+    repeating-radial-gradient(circle, rgba(20, 184, 166, 0.16) 0 1px, transparent 1px 58px),
+    conic-gradient(from -32deg, transparent 0 31%, rgba(20, 184, 166, 0.14) 32%, transparent 36% 100%);
+  mask-image: radial-gradient(circle, black 0 66%, transparent 72%);
+  opacity: 0.42;
+}
+
+.laffey-wave-lines {
+  position: absolute;
+  right: -5%;
+  bottom: 5%;
+  width: min(620px, 52vw);
+  height: 220px;
+  background:
+    repeating-linear-gradient(
+      172deg,
+      transparent 0 18px,
+      rgba(20, 184, 166, 0.12) 18px 19px,
+      transparent 19px 38px
+    );
+  opacity: 0.42;
+  transform: skewY(-7deg);
+}
+
+.laffey-hero-visual {
+  position: relative;
+  width: min(760px, calc(100vw - 48px));
+  min-height: 430px;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.laffey-visual-panel {
+  position: absolute;
+  inset: 26px 8px 22px 44px;
+  z-index: 0;
+  border: 1px solid rgba(20, 184, 166, 0.18);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(20, 184, 166, 0.08)),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.1) 1px, transparent 1px),
+    linear-gradient(rgba(20, 184, 166, 0.08) 1px, transparent 1px);
+  background-size: auto, 38px 38px, 38px 38px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transform: rotate(-2deg);
+}
+
+.laffey-ship-lines {
+  position: absolute;
+  right: 12px;
+  top: 22px;
+  z-index: 1;
+  width: 230px;
+  height: 118px;
+  border-top: 1px solid rgba(20, 184, 166, 0.26);
+  border-right: 1px solid rgba(20, 184, 166, 0.16);
+  border-radius: 22px 22px 0 0;
+  transform: skewX(-18deg);
+}
+
+.laffey-ship-lines::before,
+.laffey-ship-lines::after {
+  content: '';
+  position: absolute;
+  background: rgba(20, 184, 166, 0.2);
+}
+
+.laffey-ship-lines::before {
+  left: 28px;
+  top: 34px;
+  width: 150px;
+  height: 1px;
+}
+
+.laffey-ship-lines::after {
+  right: 46px;
+  top: 0;
+  width: 1px;
+  height: 80px;
+}
+
+.laffey-hero-character {
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  bottom: -14px;
+  z-index: 3;
+  width: min(300px, 34vw);
+  height: auto;
+  opacity: 0.98;
+  filter: drop-shadow(0 24px 32px rgba(15, 23, 42, 0.18));
+}
+
 /* Terminal Container */
 .terminal-container {
   position: relative;
-  display: inline-block;
+  z-index: 2;
+  margin: 112px 318px 28px 0;
+}
+
+.laffey-hero-visual .terminal-window,
+.laffey-hero-character {
+  transition:
+    transform 0.28s ease,
+    opacity 0.25s ease;
+}
+
+.laffey-hero-visual:hover .laffey-hero-character {
+  transform: translateY(-4px) rotate(1deg);
 }
 
 /* Terminal Window */
 .terminal-window {
+  position: relative;
+  z-index: 1;
   width: 420px;
   background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
   border-radius: 14px;
@@ -641,5 +700,94 @@ onMounted(() => {
     0 0 0 1px rgba(20, 184, 166, 0.2),
     0 0 40px rgba(20, 184, 166, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+:deep(.dark) .laffey-home-wash {
+  background:
+    radial-gradient(circle at 78% 28%, rgba(244, 114, 182, 0.08), transparent 32%),
+    radial-gradient(circle at 28% 72%, rgba(20, 184, 166, 0.11), transparent 38%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.04), rgba(20, 184, 166, 0.05));
+  opacity: 0.62;
+}
+
+:deep(.dark) .laffey-radar-grid {
+  opacity: 0.36;
+}
+
+:deep(.dark) .laffey-wave-lines {
+  opacity: 0.32;
+}
+
+:deep(.dark) .laffey-visual-panel {
+  border-color: rgba(20, 184, 166, 0.16);
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.52), rgba(20, 184, 166, 0.06)),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(20, 184, 166, 0.06) 1px, transparent 1px);
+  background-size: auto, 38px 38px, 38px 38px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+:deep(.dark) .laffey-hero-character {
+  opacity: 0.94;
+  filter: drop-shadow(0 24px 34px rgba(20, 184, 166, 0.16));
+}
+
+@media (max-width: 1023px) {
+  .laffey-home-wash {
+    right: -28%;
+    top: 4%;
+    width: 86vw;
+    height: 46vh;
+    opacity: 0.5;
+  }
+
+  .laffey-radar-grid,
+  .laffey-wave-lines {
+    display: none;
+  }
+
+  .laffey-hero-visual {
+    width: min(520px, 100%);
+    min-height: 330px;
+  }
+
+  .laffey-visual-panel {
+    inset: 18px 0 18px 0;
+  }
+
+  .laffey-ship-lines {
+    display: none;
+  }
+
+  .laffey-hero-character {
+    right: -2px;
+    bottom: -8px;
+    width: 190px;
+  }
+
+  .terminal-container {
+    margin: 84px 112px 24px 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .laffey-hero-visual {
+    min-height: 270px;
+  }
+
+  .laffey-hero-character {
+    right: -6px;
+    width: 144px;
+    opacity: 0.9;
+  }
+
+  .terminal-container {
+    margin: 78px 74px 20px 0;
+  }
+
+  .terminal-window {
+    width: min(340px, calc(100vw - 104px));
+  }
 }
 </style>
