@@ -214,11 +214,11 @@
             <div class="flex flex-col">
               <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
               <span
-                v-if="row.extra?.email_address"
+                v-if="accountDisplayEmail(row)"
                 class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]"
-                :title="row.extra.email_address"
+                :title="accountDisplayEmail(row)"
               >
-                {{ row.extra.email_address }}
+                {{ accountDisplayEmail(row) }}
               </span>
             </div>
           </template>
@@ -1048,6 +1048,17 @@ function getAntigravityTierLabel(row: any): string | null {
     case 'g1-ultra-tier': return t('admin.accounts.tier.ultra')
     default: return null
   }
+}
+
+function accountDisplayEmail(row: Account): string {
+  const extra = row.extra as Record<string, unknown> | undefined
+  const credentials = row.credentials as Record<string, unknown> | undefined
+  for (const value of [extra?.email_address, extra?.email, credentials?.email]) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim()
+    }
+  }
+  return ''
 }
 
 type OpenAICompactBadgeState = 'active' | 'blocked' | 'auto'
