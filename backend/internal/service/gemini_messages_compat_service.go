@@ -3480,7 +3480,3 @@ func (s *GeminiMessagesCompatService) extractImageInputSize(body []byte) string 
 
 	return ""
 }
-
-func (s *GeminiMessagesCompatService) extractImageSize(body []byte) string {
-	return normalizeOpenAIImageSizeTier(s.extractImageInputSize(body))
-}
