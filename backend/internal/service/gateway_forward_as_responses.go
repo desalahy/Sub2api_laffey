@@ -72,6 +72,8 @@ func (s *GatewayService) ForwardAsResponses(
 			mappedModel = normalized
 		}
 	}
+	// 国产模型默认 effort 补充：需要 mappedModel 判定，推迟到 mapping 完成之后。
+	reasoningEffort = ApplyThinkingEnabledFallback(reasoningEffort, body, mappedModel)
 	anthropicReq.Model = mappedModel
 
 	logger.L().Debug("gateway forward_as_responses: model mapping applied",
@@ -116,7 +118,7 @@ func (s *GatewayService) ForwardAsResponses(
 
 	// 10. Build upstream request
 	upstreamCtx, releaseUpstreamCtx := detachStreamUpstreamContext(ctx, reqStream)
-	upstreamReq, err := s.buildUpstreamRequest(upstreamCtx, c, account, anthropicBody, token, tokenType, mappedModel, reqStream, shouldMimicClaudeCode)
+	upstreamReq, _, err := s.buildUpstreamRequest(upstreamCtx, c, account, anthropicBody, token, tokenType, mappedModel, reqStream, shouldMimicClaudeCode)
 	releaseUpstreamCtx()
 	if err != nil {
 		return nil, fmt.Errorf("build upstream request: %w", err)
@@ -145,7 +147,7 @@ func (s *GatewayService) ForwardAsResponses(
 
 	// 12. Handle error response with failover
 	if resp.StatusCode >= 400 {
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+		respBody, _ := s.readUpstreamErrorBody(resp)
 		_ = resp.Body.Close()
 		resp.Body = io.NopCloser(bytes.NewReader(respBody))
 
@@ -163,7 +165,7 @@ func (s *GatewayService) ForwardAsResponses(
 				Message:            upstreamMsg,
 			})
 			if s.rateLimitService != nil {
-				s.rateLimitService.HandleUpstreamError(ctx, account, resp.StatusCode, resp.Header, respBody)
+				s.rateLimitService.HandleUpstreamError(ctx, account, resp.StatusCode, resp.Header, respBody, mappedModel)
 			}
 			return nil, &UpstreamFailoverError{
 				StatusCode:   resp.StatusCode,
@@ -520,6 +522,7 @@ func appendRawJSON(existing json.RawMessage, fragment string) json.RawMessage {
 
 // writeResponsesError writes an error response in OpenAI Responses API format.
 func writeResponsesError(c *gin.Context, statusCode int, code, message string) {
+	MarkResponseCommitted(c)
 	c.JSON(statusCode, gin.H{
 		"error": gin.H{
 			"code":    code,

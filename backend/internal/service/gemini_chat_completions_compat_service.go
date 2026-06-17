@@ -123,10 +123,6 @@ func (s *GeminiMessagesCompatService) forwardClaudeBodyAsChatCompletions(
 		}
 		requestIDHeader = idHeader
 
-		if c != nil {
-			c.Set(OpsUpstreamRequestBodyKey, string(geminiReq))
-		}
-
 		resp, err = s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)
 		if err != nil {
 			safeErr := sanitizeUpstreamErrorMessage(err.Error())
@@ -155,7 +151,7 @@ func (s *GeminiMessagesCompatService) forwardClaudeBodyAsChatCompletions(
 		}
 
 		if resp.StatusCode >= 400 && s.shouldRetryGeminiUpstreamError(account, resp.StatusCode) {
-			respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+			respBody := s.readUpstreamErrorBody(resp)
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusForbidden && isGeminiInsufficientScope(resp.Header, respBody) {
 				resp = &http.Response{
@@ -209,9 +205,12 @@ func (s *GeminiMessagesCompatService) forwardClaudeBodyAsChatCompletions(
 	}
 
 	reasoningEffort := extractCCReasoningEffortFromBody(originalChatBody)
+	// 国产模型默认 effort 补充（本路径上游是 Gemini，不会命中 passback-required）。
+	// 保持与 OpenAI 网关路径调用模式一致，便于未来上游变异时语义一致。
+	reasoningEffort = ApplyThinkingEnabledFallback(reasoningEffort, originalChatBody, mappedModel)
 
 	if resp.StatusCode >= 400 {
-		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+		respBody := s.readUpstreamErrorBody(resp)
 		s.handleGeminiUpstreamError(ctx, account, resp.StatusCode, resp.Header, respBody)
 		evBody := unwrapIfNeeded(account.Type == AccountTypeOAuth, respBody)
 
@@ -266,7 +265,8 @@ func (s *GeminiMessagesCompatService) forwardClaudeBodyAsChatCompletions(
 	}
 
 	imageCount := 0
-	imageSize := s.extractImageSize(claudeBody)
+	imageInputSize := s.extractImageInputSize(claudeBody)
+	imageSize := normalizeOpenAIImageSizeTier(imageInputSize)
 	if isImageGenerationModel(originalModel) {
 		imageCount = 1
 	}
@@ -282,6 +282,7 @@ func (s *GeminiMessagesCompatService) forwardClaudeBodyAsChatCompletions(
 		ReasoningEffort:  reasoningEffort,
 		ImageCount:       imageCount,
 		ImageSize:        imageSize,
+		ImageInputSize:   imageInputSize,
 		ClientDisconnect: false,
 	}, nil
 }

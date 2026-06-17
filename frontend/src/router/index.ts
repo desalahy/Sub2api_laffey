@@ -1,5 +1,5 @@
 /**
- * Vue Router configuration for Laffey API frontend
+ * Vue Router configuration for Sub2API frontend
  * Defines all application routes with lazy loading and navigation guards
  */
 
@@ -7,9 +7,11 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { useAdminSettingsStore } from '@/stores/adminSettings'
+import { useAdminComplianceStore } from '@/stores/adminCompliance'
 import { useNavigationLoadingState } from '@/composables/useNavigationLoading'
 import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
-import { DEFAULT_SITE_NAME } from '@/constants/branding'
+import { getSetupStatus } from '@/api/setup'
+import { resolveCompletedSetupRedirectPath } from './setupRedirect'
 import { resolveDocumentTitle } from './title'
 
 /**
@@ -44,7 +46,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: false,
       title: 'Login',
-      titleKey: 'common.login'
+      titleKey: 'home.login'
     }
   },
   {
@@ -105,6 +107,25 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: false,
       title: 'WeChat Payment Callback',
       titleKey: 'auth.wechatPaymentCallbackPageTitle'
+    }
+  },
+  {
+    path: '/auth/dingtalk/callback',
+    name: 'DingTalkOAuthCallback',
+    component: () => import('@/views/auth/DingTalkCallbackView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'DingTalk OAuth Callback',
+      titleKey: 'auth.dingtalkCallbackPageTitle'
+    }
+  },
+  {
+    path: '/auth/dingtalk/email-completion',
+    name: 'dingtalk-email-completion',
+    component: () => import('@/views/auth/DingTalkEmailCompletionView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'DingTalk Email Completion'
     }
   },
   {
@@ -669,11 +690,12 @@ let authInitialized = false
 const navigationLoading = useNavigationLoadingState()
 // 延迟初始化预加载，传入 router 实例
 let routePrefetch: ReturnType<typeof useRoutePrefetch> | null = null
-const FRONTEND_PREVIEW_MODE = import.meta.env.VITE_FRONTEND_PREVIEW === '1'
 const BACKEND_MODE_ALLOWED_PATHS = ['/login', '/key-usage', '/setup', '/payment/result', '/payment/airwallex', '/legal']
 const BACKEND_MODE_CALLBACK_PATHS = [
   '/auth/callback',
   '/auth/linuxdo/callback',
+  '/auth/dingtalk/callback',
+  '/auth/dingtalk/email-completion',
   '/auth/oidc/callback',
   '/auth/wechat/callback',
   '/auth/wechat/payment/callback',
@@ -696,7 +718,7 @@ function isBackendModePublicRouteAllowed(path: string, hasPendingAuthSession: bo
   return false
 }
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   // 开始导航加载状态
   navigationLoading.startNavigation()
 
@@ -718,7 +740,7 @@ router.beforeEach((to, _from, next) => {
     const menuItem = publicItems.find((item) => item.id === id)
       ?? (authStore.isAdmin ? adminSettingsStore.customMenuItems.find((item) => item.id === id) : undefined)
     if (menuItem?.label) {
-      const siteName = appStore.siteName || DEFAULT_SITE_NAME
+      const siteName = appStore.siteName || 'Sub2API'
       document.title = `${menuItem.label} - ${siteName}`
     } else {
       document.title = resolveDocumentTitle(to.meta.title, appStore.siteName, to.meta.titleKey as string)
@@ -731,14 +753,22 @@ router.beforeEach((to, _from, next) => {
   const requiresAuth = to.meta.requiresAuth !== false // Default to true
   const requiresAdmin = to.meta.requiresAdmin === true
 
-  if (FRONTEND_PREVIEW_MODE && requiresAuth && !authStore.isAuthenticated) {
-    authStore.enablePreviewAuth()
+  if (to.path === '/setup') {
+    try {
+      const status = await getSetupStatus()
+      if (!status.needs_setup) {
+        next(resolveCompletedSetupRedirectPath(authStore.isAuthenticated, authStore.isAdmin))
+        return
+      }
+    } catch {
+      // If setup status cannot be determined, keep the setup page reachable.
+    }
   }
 
   // If route doesn't require auth, allow access
   if (!requiresAuth) {
     // If already authenticated and trying to access login/register, redirect to appropriate dashboard
-    if (!FRONTEND_PREVIEW_MODE && authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {
+    if (authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {
       // In backend mode, non-admin users should NOT be redirected away from login
       // (they are blocked from all protected routes, so redirecting would cause a loop)
       if (appStore.backendModeEnabled && !authStore.isAdmin) {
@@ -776,6 +806,20 @@ router.beforeEach((to, _from, next) => {
     // User is authenticated but not admin, redirect to user dashboard
     next('/dashboard')
     return
+  }
+
+  if (requiresAdmin && authStore.isAdmin) {
+    const adminComplianceStore = useAdminComplianceStore()
+    if (!adminComplianceStore.initialized) {
+      try {
+        await adminComplianceStore.fetchStatus()
+      } catch (error) {
+        const err = error as { status?: number; code?: string; metadata?: Record<string, string> }
+        if (err.status === 423 && err.code === 'ADMIN_COMPLIANCE_ACK_REQUIRED') {
+          adminComplianceStore.requireAcknowledgement(err.metadata)
+        }
+      }
+    }
   }
 
 

@@ -88,12 +88,25 @@ func TestWriteConfigFileKeepsDefaultUserConcurrency(t *testing.T) {
 	}
 }
 
-func TestSetupConfigFromEnvUsesLaffeyDefaultAdminEmail(t *testing.T) {
-	t.Setenv("ADMIN_EMAIL", "")
+func TestBuildDatabaseConnectionDSNsUsesPostgresForBootstrap(t *testing.T) {
+	cfg := &DatabaseConfig{
+		Host:     "db",
+		Port:     5432,
+		User:     "sub2api",
+		Password: "secret",
+		DBName:   "sub2api",
+		SSLMode:  "disable",
+	}
 
-	cfg := setupConfigFromEnv()
+	bootstrapDSN, targetDSN := buildDatabaseConnectionDSNs(cfg)
 
-	if cfg.Admin.Email != "admin@laffey.local" {
-		t.Fatalf("default admin email=%q, want %q", cfg.Admin.Email, "admin@laffey.local")
+	if !strings.Contains(bootstrapDSN, "dbname=postgres") {
+		t.Fatalf("bootstrap DSN = %q, want default postgres database", bootstrapDSN)
+	}
+	if strings.Contains(bootstrapDSN, "dbname=sub2api") {
+		t.Fatalf("bootstrap DSN = %q, should not connect to target database before checking/creating it", bootstrapDSN)
+	}
+	if !strings.Contains(targetDSN, "dbname=sub2api") {
+		t.Fatalf("target DSN = %q, want configured database", targetDSN)
 	}
 }

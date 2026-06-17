@@ -38,6 +38,7 @@ type SystemSettings struct {
 	TurnstileSiteKey             string
 	TurnstileSecretKey           string
 	TurnstileSecretKeyConfigured bool
+	APIKeyACLTrustForwardedIP    bool
 
 	// LinuxDo Connect OAuth 登录
 	LinuxDoConnectEnabled                bool
@@ -45,6 +46,25 @@ type SystemSettings struct {
 	LinuxDoConnectClientSecret           string
 	LinuxDoConnectClientSecretConfigured bool
 	LinuxDoConnectRedirectURL            string
+
+	// DingTalk Connect OAuth 登录
+	DingTalkConnectEnabled                 bool
+	DingTalkConnectClientID                string
+	DingTalkConnectClientSecret            string
+	DingTalkConnectClientSecretConfigured  bool
+	DingTalkConnectRedirectURL             string
+	DingTalkConnectCorpRestrictionPolicy   string
+	DingTalkConnectInternalCorpID          string
+	DingTalkConnectBypassRegistration      bool
+	DingTalkConnectSyncCorpEmail           bool
+	DingTalkConnectSyncDisplayName         bool
+	DingTalkConnectSyncDept                bool
+	DingTalkConnectSyncCorpEmailAttrKey    string
+	DingTalkConnectSyncDisplayNameAttrKey  string
+	DingTalkConnectSyncDeptAttrKey         string
+	DingTalkConnectSyncCorpEmailAttrName   string
+	DingTalkConnectSyncDisplayNameAttrName string
+	DingTalkConnectSyncDeptAttrName        string
 
 	// WeChat Connect OAuth 登录
 	WeChatConnectEnabled                   bool
@@ -125,6 +145,8 @@ type SystemSettings struct {
 	DefaultConcurrency           int
 	DefaultBalance               float64
 	RiskControlEnabled           bool
+	CyberSessionBlockEnabled     bool
+	CyberSessionBlockTTLSeconds  int
 	AffiliateEnabled             bool
 	AffiliateRebateRate          float64
 	AffiliateRebateFreezeHours   int
@@ -168,12 +190,17 @@ type SystemSettings struct {
 	BackendModeEnabled bool
 
 	// Gateway forwarding behavior
-	EnableFingerprintUnification       bool   // 是否统一 OAuth 账号的指纹头（默认 true）
-	EnableMetadataPassthrough          bool   // 是否透传客户端原始 metadata（默认 false）
-	EnableCCHSigning                   bool   // 是否对 billing header cch 进行签名（默认 false）
-	EnableAnthropicCacheTTL1hInjection bool   // 是否对 Anthropic OAuth/SetupToken 请求体注入 1h cache_control ttl（默认 false）
-	RewriteMessageCacheControl         bool   // 是否改写 messages[*].content[*].cache_control（默认 false）
-	AntigravityUserAgentVersion        string // Antigravity 上游 User-Agent 版本号；空值使用配置/默认值
+	EnableFingerprintUnification           bool   // 是否统一 OAuth 账号的指纹头（默认 true）
+	EnableMetadataPassthrough              bool   // 是否透传客户端原始 metadata（默认 false）
+	EnableCCHSigning                       bool   // 是否对 billing header cch 进行签名（默认 false）
+	EnableClaudeOAuthSystemPromptInjection bool   // 是否对 Claude OAuth mimic 路径注入 Claude Code system blocks（默认 true）
+	ClaudeOAuthSystemPrompt                string // Claude OAuth mimic 路径注入的通用扩展 system prompt；空值使用内置默认
+	ClaudeOAuthSystemPromptBlocks          string // Claude OAuth mimic 路径注入的 system blocks JSON 配置；空值使用内置默认
+	EnableAnthropicCacheTTL1hInjection     bool   // 是否对 Anthropic OAuth/SetupToken 请求体注入 1h cache_control ttl（默认 false）
+	RewriteMessageCacheControl             bool   // 是否改写 messages[*].content[*].cache_control（默认 false）
+	AntigravityUserAgentVersion            string // Antigravity 上游 User-Agent 版本号；空值使用配置/默认值
+	OpenAICodexUserAgent                   string // OpenAI Codex 上游完整 User-Agent；空值使用内置默认
+	OpenAIAllowClaudeCodeCodexPlugin       bool   // 全局开关：是否额外放行 Claude Code 的 Codex 插件（默认 false）
 
 	// Web Search Emulation
 	WebSearchEmulationEnabled bool // 是否启用 web search 模拟
@@ -184,17 +211,26 @@ type SystemSettings struct {
 	PaymentVisibleMethodAlipayEnabled bool
 	PaymentVisibleMethodWxpayEnabled  bool
 
-	// OpenAI account scheduling
+	// OpenAI 账号调度
 	OpenAIAdvancedSchedulerEnabled bool
 
-	// Balance low notification
+	// 余额不足提醒
 	BalanceLowNotifyEnabled     bool
 	BalanceLowNotifyThreshold   float64
 	BalanceLowNotifyRechargeURL string
 
-	// Account quota notification
+	// 订阅到期提醒
+	SubscriptionExpiryNotifyEnabled bool
+
+	// 账号限额通知
 	AccountQuotaNotifyEnabled bool
 	AccountQuotaNotifyEmails  []NotifyEmailEntry
+
+	// 系统全局默认平台配额（key = platform，nil/缺省 = 不限制）
+	DefaultPlatformQuotas map[string]*DefaultPlatformQuotaSetting `json:"default_platform_quotas"`
+
+	// 允许终端用户在用量页查看自己的失败请求
+	AllowUserViewErrorRequests bool
 }
 
 type DefaultSubscriptionSetting struct {
@@ -235,6 +271,7 @@ type PublicSettings struct {
 	CustomEndpoints             string // JSON array of custom endpoints
 
 	LinuxDoOAuthEnabled      bool
+	DingTalkOAuthEnabled     bool
 	WeChatOAuthEnabled       bool
 	WeChatOAuthOpenEnabled   bool
 	WeChatOAuthMPEnabled     bool
@@ -264,6 +301,9 @@ type PublicSettings struct {
 
 	// 风控中心功能开关
 	RiskControlEnabled bool `json:"risk_control_enabled"`
+
+	// 允许终端用户在用量页查看自己的失败请求
+	AllowUserViewErrorRequests bool `json:"allow_user_view_error_requests"`
 }
 
 type LoginAgreementDocument struct {

@@ -34,7 +34,7 @@ func (r *tokenRefreshCandidateRepo) ListOAuthRefreshCandidates(context.Context) 
 		refreshToken, _ := account.Credentials["refresh_token"].(string)
 		inRetryCooldown := account.TempUnschedulableUntil != nil &&
 			account.TempUnschedulableUntil.After(now) &&
-			strings.HasPrefix(account.TempUnschedulableReason, tokenRefreshRetryExhaustedReasonPrefix)
+			strings.HasPrefix(account.TempUnschedulableReason, "token refresh retry exhausted:")
 		if account.Status != StatusActive ||
 			account.Type != AccountTypeOAuth ||
 			!isOAuthRefreshPlatform(account.Platform) ||
@@ -60,25 +60,6 @@ func (r *tokenRefreshCandidateRepo) SetError(context.Context, int64, string) err
 func (r *tokenRefreshCandidateRepo) SetTempUnschedulable(_ context.Context, _ int64, _ time.Time, reason string) error {
 	r.setTempUnschedCalls++
 	r.lastTempUnschedReason = reason
-	return nil
-}
-
-type tokenRefreshCandidateTempUnschedCache struct {
-	setCalls  int
-	lastState *TempUnschedState
-}
-
-func (c *tokenRefreshCandidateTempUnschedCache) SetTempUnsched(_ context.Context, _ int64, state *TempUnschedState) error {
-	c.setCalls++
-	c.lastState = state
-	return nil
-}
-
-func (c *tokenRefreshCandidateTempUnschedCache) GetTempUnsched(context.Context, int64) (*TempUnschedState, error) {
-	return nil, nil
-}
-
-func (c *tokenRefreshCandidateTempUnschedCache) DeleteTempUnsched(context.Context, int64) error {
 	return nil
 }
 
@@ -138,7 +119,7 @@ func TestTokenRefreshService_ProcessRefreshUsesOAuthRefreshCandidates(t *testing
 				Status:                  StatusActive,
 				Credentials:             map[string]any{"refresh_token": "refresh-token"},
 				TempUnschedulableUntil:  &future,
-				TempUnschedulableReason: tokenRefreshRetryExhaustedReasonPrefix + " network timeout",
+				TempUnschedulableReason: "token refresh retry exhausted: network timeout",
 			},
 			{
 				ID:          5,
@@ -174,12 +155,10 @@ func TestTokenRefreshService_RefreshFailureDoesNotCallPrivacy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &tokenRefreshCandidateRepo{}
-			tempCache := &tokenRefreshCandidateTempUnschedCache{}
 			svc := &TokenRefreshService{
-				accountRepo:      repo,
-				refreshPolicy:    DefaultBackgroundRefreshPolicy(),
-				cfg:              &config.TokenRefreshConfig{MaxRetries: 1, RetryBackoffSeconds: 0},
-				tempUnschedCache: tempCache,
+				accountRepo:   repo,
+				refreshPolicy: DefaultBackgroundRefreshPolicy(),
+				cfg:           &config.TokenRefreshConfig{MaxRetries: 1, RetryBackoffSeconds: 0},
 				privacyClientFactory: func(string) (*req.Client, error) {
 					t.Fatalf("privacy client factory must not be called on refresh failure")
 					return nil, errors.New("unexpected privacy call")
@@ -204,10 +183,7 @@ func TestTokenRefreshService_RefreshFailureDoesNotCallPrivacy(t *testing.T) {
 			} else {
 				require.Zero(t, repo.setErrorCalls)
 				require.Equal(t, 1, repo.setTempUnschedCalls)
-				require.True(t, strings.HasPrefix(repo.lastTempUnschedReason, tokenRefreshRetryExhaustedReasonPrefix))
-				require.Equal(t, 1, tempCache.setCalls)
-				require.NotNil(t, tempCache.lastState)
-				require.Equal(t, "token_refresh_retry_exhausted", tempCache.lastState.ErrorMessage)
+				require.True(t, strings.HasPrefix(repo.lastTempUnschedReason, "token refresh retry exhausted:"))
 			}
 		})
 	}

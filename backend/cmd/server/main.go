@@ -24,8 +24,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/web"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c" //nolint:staticcheck // SA1019: preserves existing h2c behavior until native Protocols migration is verified.
 )
 
 //go:embed VERSION
@@ -64,7 +62,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		log.Printf("Laffey API %s (commit: %s, built: %s)\n", Version, Commit, Date)
+		log.Printf("Sub2API %s (commit: %s, built: %s)\n", Version, Commit, Date)
 		return
 	}
 
@@ -114,13 +112,18 @@ func runSetupServer() {
 	// This allows users to run setup on a different address if needed
 	addr := config.GetServerAddress()
 	log.Printf("Setup wizard available at http://%s", addr)
-	log.Println("Complete the setup wizard to configure Laffey API")
+	log.Println("Complete the setup wizard to configure Sub2API")
+
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
 
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           h2c.NewHandler(r, &http2.Server{}), //nolint:staticcheck // SA1019: see import rationale.
+		Handler:           r,
 		ReadHeaderTimeout: 30 * time.Second,
 		IdleTimeout:       120 * time.Second,
+		Protocols:         protocols,
 	}
 
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
