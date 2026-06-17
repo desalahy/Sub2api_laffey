@@ -85,6 +85,7 @@ func TestRateLimitService_HandleUpstreamError_OAuth401SetsTempUnschedulable(t *t
 			Platform: PlatformGemini,
 			Type:     AccountTypeOAuth,
 			Credentials: map[string]any{
+				"refresh_token":              "rt",
 				"temp_unschedulable_enabled": true,
 				"temp_unschedulable_rules": []any{
 					map[string]any{
@@ -138,6 +139,9 @@ func TestRateLimitService_HandleUpstreamError_OAuth401InvalidatorError(t *testin
 		ID:       101,
 		Platform: PlatformOpenAI,
 		Type:     AccountTypeOAuth,
+		Credentials: map[string]any{
+			"refresh_token": "rt",
+		},
 	}
 
 	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, []byte("unauthorized"))
@@ -145,7 +149,7 @@ func TestRateLimitService_HandleUpstreamError_OAuth401InvalidatorError(t *testin
 	require.True(t, shouldDisable)
 	require.Equal(t, 0, repo.setErrorCalls)
 	require.Equal(t, 1, repo.tempCalls)
-	require.Equal(t, 1, repo.updateCredentialsCalls)
+	require.Equal(t, 0, repo.updateCredentialsCalls)
 	require.Len(t, invalidator.accounts, 1)
 }
 
@@ -167,7 +171,7 @@ func TestRateLimitService_HandleUpstreamError_NonOAuth401(t *testing.T) {
 	require.Empty(t, invalidator.accounts)
 }
 
-func TestRateLimitService_HandleUpstreamError_OAuth401UsesCredentialsUpdater(t *testing.T) {
+func TestRateLimitService_HandleUpstreamError_OAuth401DoesNotOverwriteCredentials(t *testing.T) {
 	repo := &rateLimitAccountRepoStub{}
 	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	account := &Account{
@@ -175,13 +179,14 @@ func TestRateLimitService_HandleUpstreamError_OAuth401UsesCredentialsUpdater(t *
 		Platform: PlatformOpenAI,
 		Type:     AccountTypeOAuth,
 		Credentials: map[string]any{
-			"access_token": "token",
+			"access_token":  "token",
+			"refresh_token": "rt",
 		},
 	}
 
 	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, []byte("unauthorized"))
 
 	require.True(t, shouldDisable)
-	require.Equal(t, 1, repo.updateCredentialsCalls)
-	require.NotEmpty(t, repo.lastCredentials["expires_at"])
+	require.Equal(t, 0, repo.updateCredentialsCalls)
+	require.Nil(t, repo.lastCredentials)
 }

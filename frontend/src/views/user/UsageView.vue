@@ -154,6 +154,8 @@
           :data="usageLogs"
           :loading="loading"
           :server-side-sort="true"
+          :estimate-row-height="88"
+          :overscan="12"
           default-sort-key="created_at"
           default-sort-order="desc"
           @sort="handleSort"
@@ -224,14 +226,14 @@
                   <div class="inline-flex items-center gap-1">
                     <Icon name="arrowDown" size="sm" class="text-emerald-500" />
                     <span class="font-medium text-gray-900 dark:text-white">{{
-                      row.input_tokens.toLocaleString()
+                      (row.input_tokens ?? 0).toLocaleString()
                     }}</span>
                   </div>
                   <!-- Output -->
                   <div class="inline-flex items-center gap-1">
                     <Icon name="arrowUp" size="sm" class="text-violet-500" />
                     <span class="font-medium text-gray-900 dark:text-white">{{
-                      row.output_tokens.toLocaleString()
+                      (row.output_tokens ?? 0).toLocaleString()
                     }}</span>
                   </div>
                 </div>
@@ -280,7 +282,7 @@
           <template #cell-cost="{ row }">
             <div class="flex items-center gap-1.5 text-sm">
               <span class="font-medium text-green-600 dark:text-green-400">
-                ${{ row.actual_cost.toFixed(6) }}
+                ${{ (row.actual_cost ?? 0).toFixed(6) }}
               </span>
               <!-- Cost Detail Tooltip -->
               <div
@@ -666,7 +668,8 @@ const sortState = reactive({
   sort_order: 'desc' as 'asc' | 'desc'
 })
 
-const formatDuration = (ms: number): string => {
+const formatDuration = (ms: number | null | undefined): string => {
+  if (ms == null) return '-'
   if (ms < 1000) return `${ms.toFixed(0)}ms`
   return `${(ms / 1000).toFixed(2)}s`
 }
@@ -926,8 +929,8 @@ const exportToCSV = async () => {
         log.cache_read_tokens,
         log.cache_creation_tokens,
         log.rate_multiplier,
-        log.actual_cost.toFixed(8),
-        log.total_cost.toFixed(8),
+        (log.actual_cost ?? 0).toFixed(8),
+        (log.total_cost ?? 0).toFixed(8),
         log.first_token_ms ?? '',
         log.duration_ms
       ].map(escapeCSVValue)

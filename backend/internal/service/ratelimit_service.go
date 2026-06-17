@@ -209,17 +209,26 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 					slog.Warn("oauth_401_invalidate_cache_failed", "account_id", account.ID, "error", err)
 				}
 			}
-			// 2. 设置 expires_at 为当前时间，强制下次请求刷新 token
-			if account.Credentials == nil {
-				account.Credentials = make(map[string]any)
+			// 缺少 refresh_token 的 OAuth 账号无法在冷却期内自愈（后台刷新服务也会跳过），
+			// 直接走 SetError 永久禁用，避免冷却结束后再被选中产生一发无意义的 502。
+			if strings.TrimSpace(account.GetCredential("refresh_token")) == "" {
+				msg := "Authentication failed (401): refresh_token missing, cannot recover"
+				if upstreamMsg != "" {
+					msg = "OAuth 401 (no refresh_token): " + upstreamMsg
+				}
+				s.handleAuthError(ctx, account, msg)
+				shouldDisable = true
+				break
 			}
-			account.Credentials["expires_at"] = time.Now().Format(time.RFC3339)
-			if err := persistAccountCredentials(ctx, s.accountRepo, account, account.Credentials); err != nil {
-				slog.Warn("oauth_401_force_refresh_update_failed", "account_id", account.ID, "error", err)
-			} else {
-				slog.Info("oauth_401_force_refresh_set", "account_id", account.ID, "platform", account.Platform)
-			}
-			// 3. 临时不可调度，替代 SetError（保持 status=active 让刷新服务能拾取）
+			// 2. 临时不可调度，替代 SetError（保持 status=active 让刷新服务能拾取）
+			// 注意：此处不再写回 account.Credentials/expires_at。
+			// 原实现使用请求开始时的 account 快照整列覆盖 credentials JSONB（见
+			// persistAccountCredentials → accountRepository.UpdateCredentials → SetCredentials），
+			// 在另一个 worker 刚刷新完 refresh_token 的窄窗口内会把新 refresh_token 回滚为旧值，
+			// 导致下一周期用旧 refresh_token 调上游拿到 invalid_grant 后，
+			// tryRecoverFromRefreshRace 重读 DB 发现 currentRT == usedRT 也救不回来，账号被错误 disable。
+			// 这里仅依赖 InvalidateToken + SetTempUnschedulable 让账号在冷却期内不被调度，
+			// 冷却结束后由 token_provider 的 NeedsRefresh / token_refresh_service 走带分布式锁的正路刷新。
 			msg := "Authentication failed (401): invalid or expired credentials"
 			if upstreamMsg != "" {
 				msg = "OAuth 401: " + upstreamMsg

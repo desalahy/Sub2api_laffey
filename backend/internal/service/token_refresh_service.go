@@ -12,8 +12,12 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 )
 
-// tokenRefreshTempUnschedDuration token 刷新重试耗尽后临时不可调度的持续时间
-const tokenRefreshTempUnschedDuration = 10 * time.Minute
+const (
+	// tokenRefreshTempUnschedDuration token 刷新重试耗尽后临时不可调度的持续时间
+	tokenRefreshTempUnschedDuration = 10 * time.Minute
+
+	tokenRefreshRetryExhaustedReasonPrefix = "token refresh retry exhausted:"
+)
 
 // TokenRefreshService OAuth token自动刷新服务
 // 定期检查并刷新即将过期的token
@@ -98,6 +102,24 @@ func (s *TokenRefreshService) SetRefreshAPI(api *OAuthRefreshAPI) {
 // SetRefreshPolicy 注入后台刷新调用侧策略（用于显式化平台/场景差异行为）。
 func (s *TokenRefreshService) SetRefreshPolicy(policy BackgroundRefreshPolicy) {
 	s.refreshPolicy = policy
+}
+
+func (s *TokenRefreshService) notifyAccountSchedulingBlocked(account *Account, until time.Time, reason string) {
+	if s == nil || s.tempUnschedCache == nil || account == nil || account.ID <= 0 || until.IsZero() {
+		return
+	}
+	state := &TempUnschedState{
+		UntilUnix:       until.Unix(),
+		TriggeredAtUnix: time.Now().Unix(),
+		ErrorMessage:    reason,
+	}
+	if err := s.tempUnschedCache.SetTempUnsched(context.Background(), account.ID, state); err != nil {
+		slog.Warn("token_refresh.temp_unsched_cache_set_failed",
+			"account_id", account.ID,
+			"reason", reason,
+			"error", err,
+		)
+	}
 }
 
 // Start 启动后台刷新服务
@@ -236,10 +258,9 @@ func (s *TokenRefreshService) processRefresh() {
 	}
 }
 
-// listActiveAccounts 获取所有active状态的账号
-// 使用ListActive确保刷新所有活跃账号的token（包括临时禁用的）
+// listActiveAccounts 获取后台 OAuth token 刷新候选账号。
 func (s *TokenRefreshService) listActiveAccounts(ctx context.Context) ([]Account, error) {
-	return s.accountRepo.ListActive(ctx)
+	return s.accountRepo.ListOAuthRefreshCandidates(ctx)
 }
 
 // refreshWithRetry 带重试的刷新
@@ -290,9 +311,6 @@ func (s *TokenRefreshService) refreshWithRetry(ctx context.Context, account *Acc
 					"error", setErr,
 				)
 			}
-			// 刷新失败但 access_token 可能仍有效，尝试设置隐私
-			s.ensureOpenAIPrivacy(ctx, account)
-			s.ensureAntigravityPrivacy(ctx, account)
 			return err
 		}
 
@@ -320,13 +338,10 @@ func (s *TokenRefreshService) refreshWithRetry(ctx context.Context, account *Acc
 		"error", lastErr,
 	)
 
-	// 刷新失败但 access_token 可能仍有效，尝试设置隐私
-	s.ensureOpenAIPrivacy(ctx, account)
-	s.ensureAntigravityPrivacy(ctx, account)
-
 	// 设置临时不可调度 10 分钟（不标记 error，保持 status=active 让下个刷新周期能继续尝试）
 	until := time.Now().Add(tokenRefreshTempUnschedDuration)
-	reason := fmt.Sprintf("token refresh retry exhausted: %v", lastErr)
+	reason := fmt.Sprintf("%s %v", tokenRefreshRetryExhaustedReasonPrefix, lastErr)
+	s.notifyAccountSchedulingBlocked(account, until, "token_refresh_retry_exhausted")
 	if setErr := s.accountRepo.SetTempUnschedulable(ctx, account.ID, until, reason); setErr != nil {
 		slog.Warn("token_refresh.set_temp_unschedulable_failed",
 			"account_id", account.ID,
@@ -417,11 +432,14 @@ func isNonRetryableRefreshError(err error) bool {
 	}
 	msg := strings.ToLower(err.Error())
 	nonRetryable := []string{
-		"invalid_grant",       // refresh_token 已失效
-		"invalid_client",      // 客户端配置错误
-		"unauthorized_client", // 客户端未授权
-		"access_denied",       // 访问被拒绝
-		"missing_project_id",  // 缺少 project_id
+		"invalid_grant",          // refresh_token 已失效
+		"invalid_refresh_token",  // refresh_token 无效, team 账号工作区被删除会出现
+		"app_session_terminated", // refresh_token team 账号工作区被删除
+		"refresh_token_reused",   // OpenAI refresh_token 已被使用，必须重新授权
+		"invalid_client",         // 客户端配置错误
+		"unauthorized_client",    // 客户端未授权
+		"access_denied",          // 访问被拒绝
+		"missing_project_id",     // 缺少 project_id
 		"no refresh token available",
 	}
 	for _, needle := range nonRetryable {
