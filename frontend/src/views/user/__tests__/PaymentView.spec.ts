@@ -236,29 +236,28 @@ async function mountSubscriptionConfirm(options: Parameters<typeof checkoutInfoW
 }
 
 describe('PaymentView subscription confirmation amounts', () => {
-  it('keeps subscription plan price independent from balance recharge multiplier', async () => {
+  it('shows converted CNY pay amount for plan price, original price, and create button', async () => {
     const wrapper = await mountSubscriptionConfirm({
       checkout: {
-        balance_recharge_multiplier: 4,
+        balance_recharge_multiplier: 0.14,
       },
       method: {
         currency: 'CNY',
       },
       plan: {
-        price: 200,
-        original_price: 300,
+        price: 7.99,
+        original_price: 9.99,
       },
     })
 
     const text = wrapper.text()
-    const planPrice = formatPaymentAmount(200, 'CNY')
-    const originalPrice = formatPaymentAmount(300, 'CNY')
-    const convertedByRechargeMultiplier = formatPaymentAmount(50, 'CNY')
+    const convertedPrice = formatPaymentAmount(57.07, 'CNY')
+    const convertedOriginalPrice = formatPaymentAmount(71.36, 'CNY')
 
-    expect(text).toContain(planPrice)
-    expect(text).toContain(originalPrice)
-    expect(text).not.toContain(convertedByRechargeMultiplier)
-    expect(wrapper.findAll('button').some(button => button.text().includes(planPrice))).toBe(true)
+    expect(text).toContain(convertedPrice)
+    expect(text).toContain(convertedOriginalPrice)
+    expect(text).not.toContain(formatPaymentAmount(7.99, 'CNY'))
+    expect(wrapper.findAll('button').some(button => button.text().includes(convertedPrice))).toBe(true)
   })
 
   it('keeps plan price when multiplier is not configured or payment currency is not CNY', async () => {
@@ -294,10 +293,10 @@ describe('PaymentView subscription confirmation amounts', () => {
     expect(usdWrapper.text()).toContain(formatPaymentAmount(9.99, 'USD'))
   })
 
-  it('adds fee rate to the direct subscription plan price to match backend pay_amount', async () => {
+  it('adds fee rate after CNY multiplier conversion to match backend pay_amount', async () => {
     const wrapper = await mountSubscriptionConfirm({
       checkout: {
-        balance_recharge_multiplier: 4,
+        balance_recharge_multiplier: 0.14,
         recharge_fee_rate: 2.5,
       },
       method: {
@@ -309,11 +308,11 @@ describe('PaymentView subscription confirmation amounts', () => {
     })
 
     const text = wrapper.text()
-    const price = formatPaymentAmount(7.99, 'CNY')
-    const fee = formatPaymentAmount(0.20, 'CNY')
-    const total = formatPaymentAmount(8.19, 'CNY')
+    const convertedPrice = formatPaymentAmount(57.07, 'CNY')
+    const fee = formatPaymentAmount(1.43, 'CNY')
+    const total = formatPaymentAmount(58.5, 'CNY')
 
-    expect(text).toContain(price)
+    expect(text).toContain(convertedPrice)
     expect(text).toContain(fee)
     expect(text).toContain(total)
     expect(wrapper.findAll('button').some(button => button.text().includes(total))).toBe(true)
