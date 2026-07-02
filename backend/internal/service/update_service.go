@@ -149,10 +149,6 @@ func (s *UpdateService) CheckUpdate(ctx context.Context, force bool) (*UpdateInf
 // PerformUpdate downloads and applies the update
 // Uses atomic file replacement pattern for safe in-place updates
 func (s *UpdateService) PerformUpdate(ctx context.Context) error {
-	if err := validateSelfUpdateSupported(runtime.GOOS); err != nil {
-		return err
-	}
-
 	info, err := s.CheckUpdate(ctx, true)
 	if err != nil {
 		return err
@@ -160,6 +156,10 @@ func (s *UpdateService) PerformUpdate(ctx context.Context) error {
 
 	if !info.HasUpdate {
 		return ErrNoUpdateAvailable
+	}
+
+	if err := validateSelfUpdateSupported(runtime.GOOS); err != nil {
+		return err
 	}
 
 	// Find matching archive and checksum for current platform
