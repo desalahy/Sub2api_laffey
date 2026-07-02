@@ -10,7 +10,6 @@ export default {
     login: 'Login',
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
-    siteSubtitle: 'Subscription to API Conversion Platform',
     // User-focused value proposition
     heroSubtitle: 'One Key, All AI Models',
     heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
@@ -188,8 +187,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Laffey API Setup',
-    description: 'Configure your Laffey API instance',
+    title: 'Sub2API Setup',
+    description: 'Configure your Sub2API instance',
     database: {
       title: 'Database Configuration',
       description: 'Connect to your PostgreSQL database',
@@ -253,6 +252,8 @@ export default {
     loading: 'Loading...',
     submitting: 'Submitting...',
     justNow: 'just now',
+    peakRateTooltip: 'Peak rate: {window}',
+    peakRateImageNote: '; image tokens billed as tokens are also affected, per-image billing is unaffected',
     save: 'Save',
     saved: 'Saved successfully',
     deleted: 'Deleted successfully',
@@ -370,7 +371,24 @@ export default {
     updatedAt: 'Updated: {date}',
     empty: 'No content',
     loginAgreement: 'Login Agreement',
-    adminCompliance: 'Deployment and Operation Compliance Commitment'
+    adminCompliance: 'Deployment and Operation Compliance Commitment',
+    loginAgreementPrompt: {
+      checkboxPrefix: 'I have read and agree to ',
+      documentSeparator: ', ',
+      noticeTitle: 'Accept the latest terms before continuing.',
+      noticeDescription: 'Account/password login and quick sign-in stay disabled until you accept.',
+      viewTerms: 'View terms',
+      dialogTitle: 'Terms Update Notice',
+      dialogDescription: 'Our service terms were updated on {date}. Please read and accept the following terms before continuing.',
+      recently: 'recently',
+      relatedDocuments: 'Related documents',
+      reject: 'Reject',
+      accept: 'Accept and continue',
+      loginRejectedWarning: 'Account/password login and quick sign-in are disabled until you accept the latest terms.',
+      loginRequiredWarning: 'Please read and accept the latest terms before logging in.',
+      registerRejectedWarning: 'Registration and quick sign-in are disabled until you accept the latest terms.',
+      registerRequiredWarning: 'Please read and accept the latest terms before registering.'
+    }
   },
 
   // Navigation
@@ -588,6 +606,7 @@ export default {
     },
     linuxdoCallbackPageTitle: 'LinuxDo Sign-In Callback',
     dingtalkCallbackPageTitle: 'DingTalk Sign-In Callback',
+    dingtalkProviderName: 'DingTalk',
     oidcCallbackPageTitle: 'OIDC Sign-In Callback',
     oauthCallbackPageTitle: 'OAuth Callback',
     wechatProviderName: 'WeChat',
@@ -978,6 +997,21 @@ export default {
     exportExcelFailed: 'Failed to export usage data',
     imageUnit: ' images',
     userAgent: 'User-Agent',
+    ipGeo: {
+      fetch: 'Fetch region',
+      fetching: 'Fetching...',
+      failed: 'Failed',
+      private: 'Private address',
+      refreshTitle: 'Refresh region info',
+      batchFetch: 'Batch fetch regions',
+      batchFetching: 'Fetching...',
+      pending: '{count} IPs pending',
+      batchFailed: 'Failed to batch fetch IP regions',
+      detailOrg: 'ISP',
+      detailTimezone: 'Timezone',
+      detailAccuracy: 'Accuracy',
+      detailCoordinates: 'Coordinates',
+    },
     tabs: { usage: 'Usage', errors: 'Error Requests' },
     errors: {
       time: 'Time', model: 'Model', endpoint: 'Endpoint', status: 'Status',
@@ -2115,6 +2149,7 @@ export default {
       editGroup: 'Edit Group',
       deleteGroup: 'Delete Group',
       sortOrder: 'Sort',
+      columnSettings: 'Column Settings',
       sortOrderHint: 'Drag groups to adjust display order, groups at the top will be displayed first',
       sortOrderUpdated: 'Sort order updated',
       failedToUpdateSortOrder: 'Failed to update sort order',
@@ -2152,6 +2187,15 @@ export default {
       accountsUnit: '',
       rateAndAccounts: '{rate}x rate · {count} accounts',
       accountsCount: '{count} accounts',
+      rateLabel: 'rate',
+      accountFilters: {
+        title: 'Account Filter Controls',
+        oauthOnly: 'Only allow OAuth accounts',
+        oauthOnlyEnabled: 'Enabled — API Key accounts will be excluded',
+        privacySetOnly: 'Only allow accounts with privacy protection set',
+        privacySetOnlyEnabled: 'Enabled — accounts with unset Privacy will be excluded',
+        disabled: 'Disabled'
+      },
       form: {
         name: 'Name',
         description: 'Description',
@@ -2253,11 +2297,21 @@ export default {
         finalPricePreview: 'Final per-image price preview',
         notConfigured: 'Not configured'
       },
+      peakRate: {
+        enable: 'Enable peak rate multiplier',
+        peakStart: 'Peak start',
+        peakEnd: 'Peak end',
+        peakMultiplier: 'Peak multiplier',
+        multiplierHint: 'Applies to token billing multiplier; image tokens in token billing are also affected. 0 means peak token requests are billed at 0x.'
+      },
       modelsList: {
         title: 'Custom /v1/models Model List',
         hint: 'Only changes the /v1/models response. Whitelist model calls and account routing are unchanged.',
         loading: 'Loading model list...',
-        empty: 'No displayable models'
+        empty: 'No displayable models',
+        selectedSummary: 'Selected {selected} / {total}',
+        selectAll: 'Select all',
+        invertSelection: 'Invert'
       },
       claudeCode: {
         title: 'Claude Code Client Restriction',
@@ -2411,8 +2465,23 @@ export default {
       deleteError: 'Failed to delete channel',
       nameRequired: 'Please enter a channel name',
       duplicateModels: 'Model "{0}" appears in multiple pricing entries',
-      modelConflict: "Model patterns '{model1}' and '{model2}' conflict: overlapping match range",
-      mappingConflict: "Mapping source patterns '{model1}' and '{model2}' conflict: overlapping match range",
+      modelConflict: "Model patterns '{model1}' and '{model2}' conflict: overlapping match range. Model names are matched case-insensitively, so an existing entry already covers all case variants — no need to add the variant separately.",
+      mappingConflict: "Mapping source patterns '{model1}' and '{model2}' conflict: overlapping match range. Source patterns are matched case-insensitively, so an existing entry already covers all case variants.",
+      intervalValidation: {
+        negativeMin: 'Interval #{index}: minimum token count ({value}) cannot be negative',
+        maxPositive: 'Interval #{index}: maximum token count ({value}) must be greater than 0',
+        maxGreaterThanMin: 'Interval #{index}: maximum token count ({max}) must be greater than minimum token count ({min})',
+        negativePrice: 'Interval #{index}: {field} cannot be negative',
+        unboundedLast: 'Interval #{index}: an unbounded interval (empty maximum token count) must be last',
+        overlap: 'Intervals #{previousIndex} and #{currentIndex} overlap: previous upper bound ({previousMax}) is greater than current lower bound ({currentMin})',
+        price: {
+          inputPrice: 'input price',
+          outputPrice: 'output price',
+          cacheWritePrice: 'cache write price',
+          cacheReadPrice: 'cache read price',
+          perRequestPrice: 'per-request price'
+        }
+      },
       deleteConfirm: 'Are you sure you want to delete channel "{name}"? This cannot be undone.',
       columns: {
         name: 'Name',
@@ -2447,10 +2516,15 @@ export default {
         outputPrice: 'Output',
         cacheWritePrice: 'Cache Write',
         cacheReadPrice: 'Cache Read',
+        cacheWritePriceShort: 'Cache W',
+        cacheReadPriceShort: 'Cache R',
         imageTokenPrice: 'Image Output',
         imageOutputPrice: 'Image Output Price',
         pricePlaceholder: 'Default',
         intervals: 'Context Intervals (optional)',
+        minTokens: 'Min',
+        maxTokens: 'Max',
+        inclusive: '(inclusive)',
         addInterval: 'Add Interval',
         requestTiers: 'Request Tiers',
         imageTiers: 'Image Tiers (Per Request)',
@@ -2632,6 +2706,7 @@ export default {
       queueSize: 'Async Queue Size',
       blockStatus: 'Block HTTP Status',
       blockMessage: 'Custom Block Message',
+      defaultBlockMessage: 'Content audit matched a risk rule. Please adjust your input and try again.',
       emailOnHit: 'Email on Hit',
       emailOnHitHint: 'When enabled, send a risk-control email on every hit; auto-ban notices are always sent.',
       autoBan: 'Auto Ban User',
@@ -2927,6 +3002,7 @@ export default {
       assignSubscription: 'Assign Subscription',
       adjustSubscription: 'Adjust Subscription',
       revokeSubscription: 'Revoke Subscription',
+      restoreSubscription: 'Restore Subscription',
       allStatus: 'All Status',
       allGroups: 'All Groups',
       allPlatforms: 'All Platforms',
@@ -2949,7 +3025,8 @@ export default {
       status: {
         active: 'Active',
         expired: 'Expired',
-        revoked: 'Revoked'
+        revoked: 'Revoked',
+        suspended: 'Suspended'
       },
       columns: {
         user: 'User',
@@ -2978,6 +3055,7 @@ export default {
       adjust: 'Adjust',
       adjusting: 'Adjusting...',
       revoke: 'Revoke',
+      restore: 'Restore',
       resetQuota: 'Reset Quota',
       resetQuotaTitle: 'Reset Usage Quota',
       resetQuotaConfirm: "Reset the daily, weekly, and monthly usage quota for '{user}'? Usage will be zeroed and windows restarted from today.",
@@ -2988,17 +3066,21 @@ export default {
       subscriptionAssigned: 'Subscription assigned successfully',
       subscriptionAdjusted: 'Subscription adjusted successfully',
       subscriptionRevoked: 'Subscription revoked successfully',
+      subscriptionRestored: 'Subscription restored successfully',
       failedToLoad: 'Failed to load subscriptions',
       failedToAssign: 'Failed to assign subscription',
       failedToAdjust: 'Failed to adjust subscription',
       failedToRevoke: 'Failed to revoke subscription',
+      failedToRestore: 'Failed to restore subscription',
       adjustWouldExpire: 'Remaining days after adjustment must be greater than 0',
       adjustOutOfRange: 'Adjustment days must be between -36500 and 36500',
       pleaseSelectUser: 'Please select a user',
       pleaseSelectGroup: 'Please select a group',
       validityDaysRequired: 'Please enter a valid number of days (at least 1)',
       revokeConfirm:
-        "Are you sure you want to revoke the subscription for '{user}'? This action cannot be undone.",
+        "Are you sure you want to revoke the subscription for '{user}'? You can restore it later from the revoked list.",
+      restoreConfirm:
+        "Restore the subscription for '{user}'? If the original subscription has expired, it will be restored as expired.",
       guide: {
         title: 'Subscription Management Guide',
         subtitle: 'Subscription mode lets you assign time-based usage quotas to users, with daily/weekly/monthly limits. Follow these steps to get started.',
@@ -3058,6 +3140,7 @@ export default {
       dataExportConfirmMessage: 'The exported data contains sensitive account and proxy information. Store it securely.',
       dataExportConfirm: 'Confirm Export',
       dataExported: 'Data exported successfully',
+      dataExportedSkippedShadows: 'Data exported. Skipped {count} spark shadow account(s): their scheduling config is not included in the backup; recreate and re-tune them after restore.',
       dataExportFailed: 'Failed to export data',
       dataImportTitle: 'Import Data',
       dataImportHint: 'Upload the exported JSON file to import accounts and proxies.',
@@ -3368,6 +3451,10 @@ export default {
       revertProxy: 'Revert proxy',
       revertProxySuccess: 'Successfully reverted to original proxy',
       revertProxyFailed: 'Failed to revert proxy',
+      createSparkShadow: 'Create Spark Shadow',
+      createSparkShadowConfirm: 'Create a spark shadow account linked to "{name}"? It shares the parent\'s credentials and serves only spark models.',
+      createSparkShadowSuccess: 'Spark shadow account created',
+      createSparkShadowFailed: 'Failed to create spark shadow account',
       resetStatus: 'Reset Status',
       statusReset: 'Account status reset successfully',
       failedToResetStatus: 'Failed to reset account status',
@@ -3428,6 +3515,7 @@ export default {
         wsModeOff: 'Off (off)',
         wsModeCtxPool: 'Context Pool (ctx_pool)',
         wsModePassthrough: 'Passthrough (passthrough)',
+        wsModeHttpBridge: 'HTTP Bridge (http_bridge)',
         wsModeShared: 'Shared (shared)',
         wsModeDedicated: 'Dedicated (dedicated)',
         wsModeConcurrencyHint:
@@ -3466,9 +3554,9 @@ export default {
         codexCLIOnly: 'Codex official clients only',
         codexCLIOnlyDesc:
           'Only applies to OpenAI OAuth. When enabled, only Codex official client families are allowed; when disabled, the gateway bypasses this restriction and keeps existing behavior.',
-        codexCLIOnlyAllowClaudeCode: "Also allow Claude Code's Codex plugin",
-        codexCLIOnlyAllowClaudeCodeDesc:
-          'Only takes effect when the switch above is on. Additionally allows requests from the Claude Code Codex plugin (exact match on originator=Claude Code) without weakening blocking of other non-official clients.',
+        codexCLIOnlyAppServer: 'Allow Codex app-server clients',
+        codexCLIOnlyAppServerDesc:
+          "Effective only when the switch above is on. When enabled, this account also allows third-party clients that embed the Codex engine over the app-server protocol (e.g. Claude Code's codex plugin); they still pass the global engine-fingerprint gate. OR-combined with the global app-server toggle.",
         codexImageGenerationBridge: 'Codex image-generation bridge',
         codexImageGenerationBridgeDesc:
           'Account policy takes precedence over channel and global settings. Only controls whether Codex requests through the /responses text endpoint receive the image_generation tool; standalone image-generation endpoints are unaffected.',
@@ -3508,6 +3596,10 @@ export default {
         apiKeyPassthrough: 'Auto passthrough (auth only)',
         apiKeyPassthroughDesc:
           'Only applies to Anthropic API Key accounts. When enabled, messages/count_tokens are forwarded in passthrough mode with auth replacement only, while billing/concurrency/audit and safety filtering are preserved. Disable to roll back immediately.',
+        apiKeyAuthScheme: 'Upstream auth scheme',
+        apiKeyAuthSchemeDesc: 'Choose the API key auth header used when forwarding to an Anthropic-compatible upstream. Ollama Cloud uses Authorization: Bearer.',
+        apiKeyAuthSchemeXApiKey: 'x-api-key',
+        apiKeyAuthSchemeBearer: 'Authorization: Bearer',
         webSearchEmulation: 'Web Search Emulation',
         webSearchEmulationDesc:
           'Enable web search emulation for this API Key account. When a pure web_search request is detected, the gateway calls a third-party search API and constructs the response locally. Default follows channel config.',
@@ -3865,7 +3957,7 @@ export default {
           missingExchangeParams: 'Missing authorization code, state, or OAuth session',
           failedToExchangeCode: 'Failed to exchange Grok authorization code',
           failedToValidateRT: 'Failed to validate Grok refresh token',
-          oauthOnlyHint: 'Initial Grok support is OAuth subscription-backed text and reasoning traffic only.'
+          oauthOnlyHint: 'Initial Grok support is OAuth subscription-backed Responses API text and reasoning traffic only.'
         },
         // Gemini specific
 	        gemini: {
@@ -3990,6 +4082,11 @@ export default {
           builtInTitle: 'Built-in OAuth (Gemini CLI / Code Assist)',
           builtInDesc: 'Uses Google built-in client ID. No admin configuration required.',
           builtInRequirement: 'Requires a GCP project and Project ID.',
+          googleOneDesc: 'Personal account with Google One subscription quota',
+          codeAssistDesc: 'Enterprise-grade, requires a GCP project',
+          codeAssistRequirement: 'Requires an active GCP project with billing enabled',
+          showAdvanced: 'Show advanced options (custom OAuth Client)',
+          hideAdvanced: 'Hide advanced options (custom OAuth Client)',
           gcpProjectLink: 'Create project',
           customTitle: 'Custom OAuth (AI Studio OAuth)',
           customDesc: 'Uses admin-configured OAuth client for org management.',
@@ -3997,6 +4094,9 @@ export default {
           badges: {
             recommended: 'Recommended',
             highConcurrency: 'High concurrency',
+            individuals: 'Recommended for individuals',
+            noGcp: 'No GCP required',
+            enterprise: 'Enterprise users',
             noAdmin: 'No admin setup',
             orgManaged: 'Org managed',
             adminRequired: 'Admin required'
@@ -4016,6 +4116,7 @@ export default {
           },
           links: {
             countryCheck: 'Check country association',
+            countryChange: 'Change country association',
             geminiWebActivation: 'Activate Gemini Web',
             gcpProject: 'Open GCP Console'
           }
@@ -4186,6 +4287,12 @@ export default {
         resetTooltipReady: 'Consume 1 reset credit to immediately restore the window',
         resetTooltipNeedQuery: 'Click Credits first to load the available count',
         resetTooltipNoCredits: 'No reset credits available',
+        resetTooltipShadow: 'Spark shadow accounts cannot reset credits; reset on the parent account',
+        expiresAt: 'Expires {time}',
+        expiresAtFull: 'Reset credit expires at {time}',
+        expandExpirations: 'Expand the other {count} reset credit expiration(s)',
+        collapseExpirations: 'Collapse reset credit expirations',
+        expirationDetails: 'Reset credit expiration details',
         noCreditsAvailable: 'No reset credits available',
         resetSuccess: 'Reset {windows} window(s)',
         confirmTitle: 'Confirm Weekly Limit Reset',
@@ -4760,6 +4867,52 @@ export default {
       noData: 'No data.',
       loadingText: 'loading',
       ready: 'ready',
+      autoRefreshRemaining: 'Remaining {seconds}s',
+      systemLogs: {
+        title: 'System Logs',
+        description: 'Newest logs are shown first. Filter, search, and clean up by condition.',
+        queue: 'Queue',
+        written: 'Written',
+        dropped: 'Dropped',
+        failed: 'Failed',
+        runtimeConfig: 'Runtime Log Configuration (applies immediately)',
+        all: 'All',
+        level: 'Level',
+        stacktraceThreshold: 'Stacktrace threshold',
+        samplingInitial: 'Sampling initial',
+        samplingThereafter: 'Sampling thereafter',
+        retentionDays: 'Retention days',
+        caller: 'caller',
+        sampling: 'sampling',
+        saveAndApply: 'Save and apply',
+        resetDefaults: 'Reset defaults',
+        latestWriteError: 'Latest write error:',
+        timeRange: 'Time range',
+        startTime: 'Start time (optional)',
+        endTime: 'End time (optional)',
+        component: 'Component',
+        componentPlaceholder: 'e.g. http.access',
+        keyId: 'KEY ID',
+        platform: 'Platform',
+        model: 'Model',
+        keyword: 'Keyword',
+        keywordPlaceholder: 'message/request_id',
+        search: 'Search',
+        cleanCurrentFilters: 'Clean current filters',
+        refreshHealth: 'Refresh health',
+        empty: 'No system logs',
+        time: 'Time',
+        logDetails: 'Log Details',
+        loadFailed: 'Failed to load system logs',
+        runtimeConfigActive: 'Runtime log configuration is active',
+        runtimeConfigSaveFailed: 'Failed to save log configuration',
+        resetRuntimeConfigConfirm: 'Reset to startup configuration (env/yaml) and apply immediately?',
+        runtimeConfigReset: 'Reset to startup log configuration',
+        runtimeConfigResetFailed: 'Failed to reset log configuration',
+        cleanupConfirm: 'Clean up system logs matching the current filters? This cannot be undone.',
+        cleanupSuccess: 'Cleanup complete. Deleted {count} log entries.',
+        cleanupFailed: 'Failed to clean up system logs'
+      },
       requestsTotal: 'Requests (total)',
       slaScope: 'SLA scope:',
       tokens: 'Tokens',
@@ -5633,7 +5786,7 @@ export default {
       },
       linuxdo: {
         title: 'LinuxDo Connect Login',
-        description: 'Configure LinuxDo Connect OAuth for Laffey API end-user login',
+        description: 'Configure LinuxDo Connect OAuth for Sub2API end-user login',
         enable: 'Enable LinuxDo Login',
         enableHint: 'Show LinuxDo login on the login/register pages',
         clientId: 'Client ID',
@@ -5837,9 +5990,41 @@ export default {
         openaiCodexUserAgent: 'OpenAI Codex UA',
         openaiCodexUserAgentPlaceholder: 'codex-tui/0.125.0 (Ubuntu 22.4.0; x86_64) xterm-256color (codex-tui; 0.125.0)',
         openaiCodexUserAgentHint: 'Used to bypass Cloudflare browser-UA challenges on the OpenAI upstream. Only applies when the client User-Agent is detected as a browser (Mozilla/...). Leave empty to use the built-in default.',
-        openaiAllowClaudeCodeCodexPlugin: "Allow using the Codex plugin in Claude Code",
-        openaiAllowClaudeCodeCodexPluginDesc:
-          "Global switch; only affects OpenAI OAuth accounts that have 'Codex official clients only' enabled. When on, all such accounts additionally allow requests from the Claude Code Codex plugin (exact match on originator=Claude Code) without per-account config; upstream requests remain pass-through.",
+        codexHardeningTitle: "Codex Settings",
+        codexClientRestrictionTitle: "Codex client restriction",
+        codexHardeningDesc:
+          "Only affects OpenAI OAuth accounts with 'Codex official clients only' enabled (global). Beyond User-Agent/Originator, harden the decision with a version range, an engine-fingerprint gate, and black/whitelists.",
+        minCodexVersion: "Min Codex Version",
+        minCodexVersionPlaceholder: "e.g. 0.142.0",
+        maxCodexVersion: "Max Codex Version",
+        maxCodexVersionPlaceholder: "e.g. 0.200.0",
+        codexVersionHint:
+          "Official clients only: checks their version against the [min, max] range. Leave a side empty to not limit it.",
+        codexFingerprintSignals: "Codex engine fingerprint signals",
+        codexFingerprintSignalsDesc:
+          "Define engine-fingerprint signals: every Required signal must match (AND); within a row, '/'-separated variants are OR'd. None checked = not enforced. Default checks only the x-codex- prefix. Types: header exact / header prefix / body path.",
+        codexFpTypeHeaderExact: "Header exact",
+        codexFpTypeHeaderPrefix: "Header prefix",
+        codexFpTypeBodyPath: "Body path",
+        codexFpMatchPlaceholder: "match; '/'-separate variants (e.g. session-id / session_id or x-codex-)",
+        codexFpRequired: "Required",
+        codexFingerprintNoRequiredWarn: "No signal is marked Required — the engine-fingerprint gate is inactive, allowing every candidate that passes identity/version. Check at least one signal to enable it.",
+        codexAllowAppServer: "Codex app-server",
+        codexAllowAppServerDesc:
+          "Allow third-party clients that embed the Codex engine and connect over the app-server protocol (e.g. Claude Code's codex plugin). Off by default; when on, such clients are allowed once they pass the engine-fingerprint gate (the signal list below); off = only official clients and the whitelist are allowed.",
+        codexBlacklist: "User-Agent/Originator Blacklist",
+        codexBlacklistDesc:
+          "Deny if any field matches; takes precedence over any allow. originator is exact; User-Agent is a 'contains' match (comma-separated).",
+        codexWhitelist: "User-Agent/Originator Whitelist",
+        codexWhitelistDesc:
+          "Allow clients outside the official set: requires exact originator and every User-Agent marker present. Still subject to the fingerprint gate unless 'Skip engine fingerprint' is checked.",
+        codexWhitelistSkipFingerprint: "Skip engine fingerprint",
+        codexWhitelistSkipFingerprintTooltip:
+          "Risk: when checked this entry is allowed on originator + User-Agent alone (both forgeable), with no engine-fingerprint backstop. Use only for trusted third-party clients that genuinely do not send a codex engine fingerprint.",
+        codexOriginatorPlaceholder: "originator (exact, e.g. opencode)",
+        codexUaContainsPlaceholder: "User-Agent contains markers, comma-separated (e.g. opencode/)",
+        codexAddRow: "Add entry",
+        codexRemoveRow: "Remove",
       },
       webSearchEmulation: {
         title: 'Web Search Emulation',
@@ -5882,7 +6067,7 @@ export default {
         backendModeDescription:
           'Disables user registration, public site, and self-service features. Only admin can log in and manage the platform.',
         siteName: 'Site Name',
-        siteNamePlaceholder: 'Laffey API',
+        siteNamePlaceholder: 'Sub2API',
         siteNameHint: 'Displayed in emails and page titles',
         siteSubtitle: 'Site Subtitle',
         siteSubtitlePlaceholder: 'Subscription to API Conversion Platform',
@@ -5890,7 +6075,7 @@ export default {
         apiBaseUrl: 'API Base URL',
         apiBaseUrlPlaceholder: 'https://api.example.com',
         apiBaseUrlHint:
-          'Used for "Use Key" and "Import to CC Switch" features. Leave empty to use current site URL.',
+          'Used for "Use Key", "Import to CC Switch", and callback URL suggestions. Leave empty to use current site URL.',
         tablePreferencesTitle: 'Global Table Preferences',
         tablePreferencesDescription: 'Configure default pagination behavior for shared table components',
         tableDefaultPageSize: 'Default Rows Per Page',
@@ -6172,7 +6357,7 @@ export default {
         fromEmail: 'From Email',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: 'From Name',
-        fromNamePlaceholder: 'Laffey API',
+        fromNamePlaceholder: 'Sub2API',
         useTls: 'Use TLS',
         useTlsHint: 'Enable TLS encryption for SMTP connection'
       },
@@ -6751,6 +6936,10 @@ export default {
     notFoundDesc: 'This custom page does not exist or has been removed.',
     notConfiguredTitle: 'Page URL not configured',
     notConfiguredDesc: 'The URL for this custom page has not been properly configured.',
+    tableOfContents: 'Contents',
+    copyCode: 'Copy',
+    copiedCode: 'Copied',
+    copyCodeFailed: 'Failed'
   },
 
   // Announcements Page
@@ -6821,14 +7010,14 @@ export default {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '👋 Welcome to Laffey API',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Laffey API is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>🎯 Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li>🔗 <b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li>🔑 <b>Key Distribution</b> - Generate independent API Keys for users</li><li>💰 <b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
+        title: '👋 Welcome to Sub2API',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Sub2API is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>🎯 Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li>🔗 <b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li>🔑 <b>Key Distribution</b> - Generate independent API Keys for users</li><li>💰 <b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
         nextBtn: 'Start Setup 🚀',
         prevBtn: 'Skip'
       },
       groupManage: {
         title: '📦 Step 1: Group Management',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of Laffey API, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 Each group can contain multiple upstream accounts</li><li>💰 Each group has independent billing multiplier</li><li>👥 Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Group Management" on the left sidebar</p></div>'
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of Sub2API, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 Each group can contain multiple upstream accounts</li><li>💰 Each group has independent billing multiplier</li><li>👥 Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Group Management" on the left sidebar</p></div>'
       },
       createGroup: {
         title: '➕ Create New Group',
@@ -6921,8 +7110,8 @@ export default {
     // User tour steps
     user: {
       welcome: {
-        title: '👋 Welcome to Laffey API',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the Laffey API AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
+        title: '👋 Welcome to Sub2API',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the Sub2API AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
         nextBtn: 'Start 🚀',
         prevBtn: 'Skip'
       },
@@ -7118,6 +7307,7 @@ export default {
     planFeatures: 'Features',
     planCard: {
       rate: 'Rate',
+      peakRate: 'Peak Rate',
       dailyLimit: 'Daily',
       weeklyLimit: 'Weekly',
       monthlyLimit: 'Monthly',
