@@ -41,7 +41,7 @@ const (
 
 	// Rollback: expose at most the 3 most recent versions older than current
 	maxRollbackVersions = 3
-	// Fetch a few extra releases so filtering (current/newer/prerelease) still leaves enough candidates
+	// Fetch a few extra releases so filtering (current/newer/unrelated prerelease) still leaves enough candidates
 	rollbackFetchPageSize = 15
 )
 
@@ -305,7 +305,7 @@ func (s *UpdateService) Rollback() error {
 
 // ListRollbackVersions returns up to maxRollbackVersions release versions that are
 // strictly older than the current version (the current version itself is excluded),
-// newest first. Draft and prerelease entries are skipped.
+// newest first. Draft entries and unrelated prerelease tags are skipped.
 func (s *UpdateService) ListRollbackVersions(ctx context.Context) ([]RollbackVersion, error) {
 	releases, err := s.fetchRollbackCandidates(ctx)
 	if err != nil {
@@ -371,7 +371,7 @@ func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubR
 	seen := make(map[string]bool, len(releases))
 	candidates := make([]*GitHubRelease, 0, maxRollbackVersions)
 	for _, r := range releases {
-		if r == nil || r.Draft || r.Prerelease {
+		if !isRollbackEligibleRelease(r) {
 			continue
 		}
 		v := strings.TrimPrefix(r.TagName, "v")
@@ -397,6 +397,20 @@ func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubR
 		candidates = candidates[:maxRollbackVersions]
 	}
 	return candidates, nil
+}
+
+func isRollbackEligibleRelease(release *GitHubRelease) bool {
+	if release == nil || release.Draft {
+		return false
+	}
+	if release.Prerelease && !isLaffeyReleaseTag(release.TagName) {
+		return false
+	}
+	return true
+}
+
+func isLaffeyReleaseTag(tag string) bool {
+	return strings.Contains(strings.TrimSpace(tag), "-laffey.")
 }
 
 func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*UpdateInfo, error) {
