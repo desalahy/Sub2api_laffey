@@ -80,8 +80,7 @@ func (c *githubReleaseClientError) FetchChecksumFile(ctx context.Context, url st
 }
 
 func (c *githubReleaseClient) FetchLatestRelease(ctx context.Context, repo string) (*service.GitHubRelease, error) {
-	const perPage = 10
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases?per_page=%d", repo, perPage)
+	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -100,23 +99,12 @@ func (c *githubReleaseClient) FetchLatestRelease(ctx context.Context, repo strin
 		return nil, fmt.Errorf("GitHub API returned %d", resp.StatusCode)
 	}
 
-	var releases []*service.GitHubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+	var release service.GitHubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
 		return nil, err
 	}
 
-	for _, release := range releases {
-		if release != nil && !release.Draft && strings.Contains(strings.TrimSpace(release.TagName), "-laffey.") {
-			return release, nil
-		}
-	}
-	for _, release := range releases {
-		if release != nil && !release.Draft {
-			return release, nil
-		}
-	}
-
-	return nil, fmt.Errorf("GitHub API returned no releases")
+	return &release, nil
 }
 
 func (c *githubReleaseClient) FetchRecentReleases(ctx context.Context, repo string, perPage int) ([]*service.GitHubRelease, error) {
