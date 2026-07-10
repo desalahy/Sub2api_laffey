@@ -1,0 +1,10 @@
+{
+  "name": "laffey-branding-smoke",
+  "private": true,
+  "scripts": {
+    "test": "playwright test branding.spec.ts --reporter=line"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}

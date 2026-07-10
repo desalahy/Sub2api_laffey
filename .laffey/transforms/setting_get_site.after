@@ -1,0 +1,4 @@
+func (s *SettingService) GetSiteName(ctx context.Context) string {
+	value, _ := s.settingRepo.GetValue(ctx, SettingKeySiteName)
+	return resolveLaffeySiteName(ctx, s.settingRepo, value)
+}

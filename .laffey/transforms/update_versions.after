@@ -1,0 +1,44 @@
+// compareVersions compares semantic versions and Laffey patch revisions.
+func compareVersions(current, latest string) int {
+	currentParts := parseVersionNumbers(current)
+	latestParts := parseVersionNumbers(latest)
+	maxLen := len(currentParts)
+	if len(latestParts) > maxLen {
+		maxLen = len(latestParts)
+	}
+
+	for i := 0; i < maxLen; i++ {
+		currentPart := 0
+		if i < len(currentParts) {
+			currentPart = currentParts[i]
+		}
+		latestPart := 0
+		if i < len(latestParts) {
+			latestPart = latestParts[i]
+		}
+		if currentPart < latestPart {
+			return -1
+		}
+		if currentPart > latestPart {
+			return 1
+		}
+	}
+	return 0
+}
+
+func parseVersionNumbers(v string) []int {
+	v = strings.TrimPrefix(v, "v")
+	parts := strings.FieldsFunc(v, func(r rune) bool {
+		return r < '0' || r > '9'
+	})
+	result := make([]int, 0, len(parts))
+	for _, part := range parts {
+		if parsed, err := strconv.Atoi(part); err == nil {
+			result = append(result, parsed)
+		}
+	}
+	if len(result) == 0 {
+		return []int{0}
+	}
+	return result
+}

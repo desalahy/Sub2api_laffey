@@ -1,0 +1,413 @@
+name: Sync Upstream Release
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: "Stable upstream tag, or latest"
+        required: false
+        default: "latest"
+        type: string
+      force:
+        description: "Regenerate even when upstream.lock.json already has this tag"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: laffey-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      base_sha: ${{ steps.resolve.outputs.base_sha }}
+      release_url: ${{ steps.resolve.outputs.release_url }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      upstream_commit: ${{ steps.fetch.outputs.commit }}
+      up_to_date: ${{ steps.resolve.outputs.up_to_date }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Test trusted sync tooling
+        run: python -m unittest discover -s .laffey/testsuite -v
+
+      - name: Resolve stable upstream release
+        id: resolve
+        env:
+          REQUESTED_TAG: ${{ github.event.inputs.upstream_tag || 'latest' }}
+          FORCE_SYNC: ${{ github.event.inputs.force || 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$REQUESTED_TAG" || "$REQUESTED_TAG" == "latest" ]]; then
+            RELEASE_JSON="$(python .laffey/tools/laffey_sync.py latest --repository Wei-Shaw/sub2api)"
+            TAG="$(python -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])' <<<"$RELEASE_JSON")"
+            RELEASE_URL="$(python -c 'import json,sys; print(json.load(sys.stdin)["html_url"])' <<<"$RELEASE_JSON")"
+          else
+            TAG="$REQUESTED_TAG"
+            python .laffey/tools/laffey_sync.py release-tag --upstream-tag "$TAG" --revision 1 >/dev/null
+            RELEASE_URL="https://github.com/Wei-Shaw/sub2api/releases/tag/$TAG"
+          fi
+
+          LOCKED_TAG="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          lock = json.loads(Path('.laffey/upstream.lock.json').read_text(encoding='utf-8'))
+          print(lock.get('upstream', {}).get('tag') or '')
+          PY
+          )"
+          UP_TO_DATE=false
+          if [[ "$FORCE_SYNC" != "true" && "$LOCKED_TAG" == "$TAG" ]]; then
+            UP_TO_DATE=true
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "release_url=$RELEASE_URL" >> "$GITHUB_OUTPUT"
+          echo "base_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "up_to_date=$UP_TO_DATE" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch release into isolated ref
+        id: fetch
+        if: steps.resolve.outputs.up_to_date != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/Wei-Shaw/sub2api.git 2>/dev/null || true
+          COMMIT="$(python .laffey/tools/laffey_sync.py fetch --repo . --remote upstream --tag '${{ steps.resolve.outputs.tag }}')"
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+
+  candidate:
+    needs: detect
+    if: needs.detect.outputs.up_to_date != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      branch: ${{ steps.publish.outputs.branch }}
+      candidate_sha: ${{ steps.publish.outputs.candidate_sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: master
+
+      - name: Confirm base has not moved
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          test "$(git rev-parse origin/master)" = "${{ needs.detect.outputs.base_sha }}"
+
+      - name: Build verified snapshot without executing upstream code
+        env:
+          TAG: ${{ needs.detect.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/Wei-Shaw/sub2api.git 2>/dev/null || true
+          python .laffey/tools/laffey_sync.py fetch --repo . --remote upstream --tag "$TAG" >/dev/null
+          if ! python .laffey/tools/laffey_sync.py build \
+            --repo . \
+            --upstream-ref "refs/remotes/upstream-release/$TAG" \
+            --base-ref origin/master \
+            --upstream-tag "$TAG" \
+            --output "$RUNNER_TEMP/candidate" \
+            > "$RUNNER_TEMP/build-result.json" \
+            2> "$RUNNER_TEMP/build-error.log"; then
+            {
+              echo "# Laffey Upstream Sync Failure"
+              echo
+              echo "- Upstream tag: \`$TAG\`"
+              echo "- Base commit: \`${{ needs.detect.outputs.base_sha }}\`"
+              echo
+              echo 'The deterministic brand transform failed before a candidate could be published.'
+            } > "$RUNNER_TEMP/sync-failure.md"
+            cat "$RUNNER_TEMP/build-error.log" >&2
+            exit 1
+          fi
+
+      - name: Commit and push generated candidate branch
+        id: publish
+        env:
+          TAG: ${{ needs.detect.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="sync/upstream-$TAG"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH" origin/master
+          git rm -r -q --ignore-unmatch .
+          cp -a "$RUNNER_TEMP/candidate/." .
+          git add -A
+          git commit -m "chore(sync): rebuild Laffey on upstream $TAG"
+
+          if git fetch origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null; then
+            OLD_SHA="$(git rev-parse "refs/remotes/origin/$BRANCH")"
+            git push --force-with-lease="refs/heads/$BRANCH:$OLD_SHA" origin "HEAD:refs/heads/$BRANCH"
+          else
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
+
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "candidate_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload generation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: upstream-sync-report-${{ needs.detect.outputs.tag }}
+          path: |
+            .laffey/generated-report.md
+            ${{ runner.temp }}/build-result.json
+            ${{ runner.temp }}/build-error.log
+            ${{ runner.temp }}/sync-failure.md
+          if-no-files-found: ignore
+          retention-days: 30
+
+  backend-unit:
+    needs: candidate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.candidate.outputs.branch }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Unit tests
+        working-directory: backend
+        run: make test-unit
+
+  backend-integration:
+    needs: candidate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.candidate.outputs.branch }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Integration tests
+        working-directory: backend
+        run: make test-integration
+
+  frontend:
+    needs: candidate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.candidate.outputs.branch }}
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Lint, typecheck, test, and build
+        working-directory: frontend
+        run: |
+          pnpm run lint:check
+          pnpm run typecheck
+          pnpm run test:run
+          pnpm run build
+
+  brand-contract:
+    needs: candidate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.candidate.outputs.branch }}
+          fetch-depth: 0
+      - name: Test sync tooling and release contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s .laffey/testsuite -v
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock = json.loads(Path('.laffey/upstream.lock.json').read_text(encoding='utf-8'))
+          assert lock.get('status') != 'bootstrap'
+          assert lock['upstream']['tag'].startswith('v')
+          assert len(lock['upstream']['commit']) == 40
+          PY
+          grep -q 'project_name: sub2api_laffey' .goreleaser.yaml
+          grep -q 'ghcr.io/desalahy/sub2api_laffey:latest' deploy/docker-compose.yml
+          grep -q 'GITHUB_REPO="desalahy/Sub2api_laffey"' deploy/install.sh
+          grep -q 'v\*\.\*\.\*-laffey\.\*' .github/workflows/release.yml
+          if grep -R 'weishaw/sub2api:latest' deploy .goreleaser*.yaml; then
+            echo 'Found an upstream image reference in branded release files' >&2
+            exit 1
+          fi
+
+  visual-smoke:
+    needs: candidate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.candidate.outputs.branch }}
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Start mock API and frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREVIEW_API_PORT=18080 node tools/frontend-preview-mock.mjs > "$RUNNER_TEMP/mock.log" 2>&1 &
+          cd frontend
+          VITE_FRONTEND_PREVIEW=1 VITE_DEV_PROXY_TARGET=http://127.0.0.1:18080 pnpm exec vite --host 127.0.0.1 --port 3000 > "$RUNNER_TEMP/vite.log" 2>&1 &
+          for attempt in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:3000/home >/dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/mock.log" "$RUNNER_TEMP/vite.log"
+          exit 1
+      - name: Run desktop and mobile branding smoke
+        env:
+          LAFFEY_PREVIEW_URL: http://127.0.0.1:3000
+        run: |
+          npm ci --prefix .laffey/browser
+          ./.laffey/browser/node_modules/.bin/playwright install --with-deps chromium
+          npm test --prefix .laffey/browser
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: laffey-branding-screenshots-${{ needs.candidate.outputs.candidate_sha }}
+          path: test-results/
+          retention-days: 30
+
+  publish-pr:
+    needs: [detect, candidate, backend-unit, backend-integration, frontend, brand-contract, visual-smoke]
+    if: ${{ !cancelled() && needs.candidate.result == 'success' && needs.backend-unit.result == 'success' && needs.backend-integration.result == 'success' && needs.frontend.result == 'success' && needs.brand-contract.result == 'success' && needs.visual-smoke.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.candidate.outputs.branch }}
+          fetch-depth: 0
+      - name: Confirm base still matches and publish success status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          test "$(git rev-parse origin/master)" = "${{ needs.detect.outputs.base_sha }}"
+          gh api --method POST \
+            "repos/${{ github.repository }}/statuses/${{ needs.candidate.outputs.candidate_sha }}" \
+            -f state=success \
+            -f context=laffey-sync/validated \
+            -f description='Snapshot, brand, backend, frontend, and visual checks passed'
+      - name: Create or update sync pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ needs.candidate.outputs.branch }}
+          TAG: ${{ needs.detect.outputs.tag }}
+          RELEASE_URL: ${{ needs.detect.outputs.release_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .laffey/generated-report.md "$RUNNER_TEMP/pr-body.md"
+          cat >> "$RUNNER_TEMP/pr-body.md" <<EOF
+
+          ## Validation
+
+          - Upstream release: $RELEASE_URL
+          - Python sync contract: passed
+          - Backend unit and integration suites: passed
+          - Frontend lint, typecheck, full Vitest, and build: passed
+          - Desktop and mobile branding smoke: passed
+
+          ## Removed Fork-only Implementations
+
+          - Local Grok, payment, OAuth, and gateway implementations are discarded.
+          - Where those capabilities exist in this release, the upstream implementation is retained unchanged.
+          - Only the paths declared in `.laffey/brand.json` differ from the upstream commit.
+
+          Merge remains manual and does not trigger a release.
+          EOF
+
+          PR_NUMBER="$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number // empty')"
+          if [[ -n "$PR_NUMBER" ]]; then
+            gh pr edit "$PR_NUMBER" --title "chore(sync): rebuild Laffey on upstream $TAG" --body-file "$RUNNER_TEMP/pr-body.md"
+          else
+            gh pr create --base master --head "$BRANCH" --title "chore(sync): rebuild Laffey on upstream $TAG" --body-file "$RUNNER_TEMP/pr-body.md"
+          fi
+
+  report-failure:
+    needs: [detect, candidate, backend-unit, backend-integration, frontend, brand-contract, visual-smoke, publish-pr]
+    if: ${{ always() && needs.detect.outputs.up_to_date != 'true' && !cancelled() && needs.publish-pr.result != 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      statuses: write
+    steps:
+      - name: Mark candidate failed when a commit exists
+        if: needs.candidate.outputs.candidate_sha != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST \
+            "repos/${{ github.repository }}/statuses/${{ needs.candidate.outputs.candidate_sha }}" \
+            -f state=failure \
+            -f context=laffey-sync/validated \
+            -f description='Upstream snapshot generation or validation failed'
+      - name: Create or update blocking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.detect.outputs.tag || 'unknown' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TITLE="Upstream sync blocked: $TAG"
+          BODY="The automated Laffey snapshot rebuild failed. Review workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          ISSUE="$(gh issue list --state open --search "$TITLE in:title" --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n1)"
+          if [[ -n "$ISSUE" ]]; then
+            gh issue comment "$ISSUE" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
