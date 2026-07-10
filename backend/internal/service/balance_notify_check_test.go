@@ -179,13 +179,6 @@ func TestGetSiteName_Configured(t *testing.T) {
 	require.Equal(t, "My Site", s.getSiteName(context.Background()))
 }
 
-func TestGetSiteName_BackfillsLegacyDefault(t *testing.T) {
-	s, repo := newBalanceNotifyServiceForTest()
-	repo.data[SettingKeySiteName] = legacyDefaultSiteName
-	require.Equal(t, defaultSiteName, s.getSiteName(context.Background()))
-	require.Equal(t, defaultSiteName, repo.data[SettingKeySiteName])
-}
-
 // ---------- crossedDownward ----------
 
 func TestCrossedDownward_CrossesBelow(t *testing.T) {

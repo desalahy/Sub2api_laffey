@@ -72,7 +72,7 @@ If you prefer manual control:
 ```bash
 # Clone repository
 git clone https://github.com/desalahy/Sub2api_laffey.git
-cd Sub2api_laffey/deploy
+cd sub2api/deploy
 
 # Configure environment
 cp .env.example .env
@@ -121,7 +121,7 @@ When using Docker Compose with `AUTO_SETUP=true`:
 
 3. If `ADMIN_PASSWORD` is not set, check logs for the generated password:
    ```bash
-   docker compose -f docker-compose.local.yml logs sub2api | grep "admin password"
+   docker compose logs sub2api | grep "admin password"
    ```
 
 ### Database Migration Notes (PostgreSQL)
@@ -213,7 +213,7 @@ docker compose down -v
 | `JWT_SECRET` | **Recommended** | *(auto-generated)* | JWT secret (fixed for persistent sessions) |
 | `TOTP_ENCRYPTION_KEY` | **Recommended** | *(auto-generated)* | TOTP encryption key (fixed for persistent 2FA) |
 | `SERVER_PORT` | No | `8080` | Server port |
-| `ADMIN_EMAIL` | No | `admin@laffey.local` | Admin email |
+| `ADMIN_EMAIL` | No | `admin@sub2api.local` | Admin email |
 | `ADMIN_PASSWORD` | No | *(auto-generated)* | Admin password |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
@@ -234,13 +234,13 @@ When using `docker-compose.local.yml`, all data is stored in local directories, 
 cd /path/to/deployment
 docker compose -f docker-compose.local.yml down
 cd ..
-tar czf laffey-api-complete.tar.gz deployment/
+tar czf sub2api-complete.tar.gz deployment/
 
 # Transfer to new server
-scp laffey-api-complete.tar.gz user@new-server:/path/to/destination/
+scp sub2api-complete.tar.gz user@new-server:/path/to/destination/
 
 # On new server: Extract and start
-tar xzf laffey-api-complete.tar.gz
+tar xzf sub2api-complete.tar.gz
 cd deployment/
 docker compose -f docker-compose.local.yml up -d
 ```
@@ -561,7 +561,7 @@ sudo systemctl status redis
 
 Laffey API supports TLS fingerprint simulation to make requests appear as if they come from the official Claude CLI (Node.js client).
 
-> **Tip:** Use your own captured TLS fingerprint data or a trusted TLS fingerprint reference for device and browser values.
+> **💡 Tip:** Visit **[tls.sub2api.org](https://tls.sub2api.org/)** to get TLS fingerprint information for different devices and browsers.
 
 ### Default Behavior
 

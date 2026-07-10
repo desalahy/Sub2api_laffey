@@ -7,7 +7,9 @@ import (
 
 // DiagnoseModelAvailabilityForPlatform reports whether the requested model
 // is configured to be served by any OpenAI-compatible account in the group
-// for the requested platform.
+// for the given platform (e.g. PlatformOpenAI, PlatformGrok). The platform
+// scopes the candidate pool so distinct OpenAI-compatible platforms do not
+// cross-contaminate diagnosis results.
 //
 // Safe to call on the error path: returns {true,true} on any internal
 // failure or when the inputs preclude meaningful diagnosis (empty model,
@@ -23,9 +25,6 @@ func (s *OpenAIGatewayService) DiagnoseModelAvailabilityForPlatform(
 	}
 	requestedModel = strings.TrimSpace(requestedModel)
 	if requestedModel == "" {
-		return ModelAvailabilityDiagnosis{HasAccountsInPool: true, HasModelSupport: true}
-	}
-	if strings.TrimSpace(platform) == "" {
 		return ModelAvailabilityDiagnosis{HasAccountsInPool: true, HasModelSupport: true}
 	}
 

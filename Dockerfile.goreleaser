@@ -12,7 +12,7 @@ FROM ${POSTGRES_IMAGE} AS pg-client
 
 FROM ${ALPINE_IMAGE}
 
-LABEL maintainer="desalahy <github.com/desalahy>"
+LABEL maintainer="Wei-Shaw <github.com/Wei-Shaw>"
 LABEL description="Laffey API - AI API Gateway Platform"
 LABEL org.opencontainers.image.source="https://github.com/desalahy/Sub2api_laffey"
 

@@ -8,17 +8,8 @@ Laffey API is an AI API Gateway Platform for distributing and managing AI produc
 docker run -d \
   --name sub2api \
   -p 8080:8080 \
-  -e AUTO_SETUP=true \
-  -e SERVER_HOST=0.0.0.0 \
-  -e SERVER_PORT=8080 \
-  -e DATABASE_HOST=postgres.example.com \
-  -e DATABASE_PORT=5432 \
-  -e DATABASE_USER=sub2api \
-  -e DATABASE_PASSWORD=change-me \
-  -e DATABASE_DBNAME=sub2api \
-  -e DATABASE_SSLMODE=disable \
-  -e REDIS_HOST=redis.example.com \
-  -e REDIS_PORT=6379 \
+  -e DATABASE_URL="postgres://user:pass@host:5432/sub2api" \
+  -e REDIS_URL="redis://host:6379" \
   ghcr.io/desalahy/sub2api_laffey:latest
 ```
 
@@ -33,17 +24,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - AUTO_SETUP=true
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8080
-      - DATABASE_HOST=db
-      - DATABASE_PORT=5432
-      - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=postgres
-      - DATABASE_DBNAME=sub2api
-      - DATABASE_SSLMODE=disable
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/sub2api?sslmode=disable
+      - REDIS_URL=redis://redis:6379
     depends_on:
       - db
       - redis
@@ -71,19 +53,10 @@ volumes:
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `AUTO_SETUP` | Enable non-interactive startup setup for containers | Yes | `false` |
-| `SERVER_HOST` | Server bind host inside the container | No | `0.0.0.0` |
-| `SERVER_PORT` | Server port inside the container | No | `8080` |
-| `SERVER_MODE` | Server mode (`debug`/`release`) | No | `release` |
-| `DATABASE_HOST` | PostgreSQL host | Yes | - |
-| `DATABASE_PORT` | PostgreSQL port | No | `5432` |
-| `DATABASE_USER` | PostgreSQL user | Yes | - |
-| `DATABASE_PASSWORD` | PostgreSQL password | Yes | - |
-| `DATABASE_DBNAME` | PostgreSQL database name | Yes | - |
-| `DATABASE_SSLMODE` | PostgreSQL SSL mode | No | `disable` |
-| `REDIS_HOST` | Redis host | Yes | - |
-| `REDIS_PORT` | Redis port | No | `6379` |
-| `REDIS_PASSWORD` | Redis password | No | - |
+| `DATABASE_URL` | PostgreSQL connection string | Yes | - |
+| `REDIS_URL` | Redis connection string | Yes | - |
+| `PORT` | Server port | No | `8080` |
+| `GIN_MODE` | Gin framework mode (`debug`/`release`) | No | `release` |
 
 ## Supported Architectures
 

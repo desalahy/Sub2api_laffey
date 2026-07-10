@@ -1814,7 +1814,8 @@ func (s *ContentModerationService) siteName(ctx context.Context) string {
 	if s == nil || s.settingRepo == nil {
 		return defaultSiteName
 	}
-	return siteNameFromSettingRepo(ctx, s.settingRepo)
+	value, _ := s.settingRepo.GetValue(ctx, SettingKeySiteName)
+	return resolveLaffeySiteName(ctx, s.settingRepo, value)
 }
 
 func defaultContentModerationConfig() *ContentModerationConfig {

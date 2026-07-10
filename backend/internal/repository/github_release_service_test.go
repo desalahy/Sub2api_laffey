@@ -210,40 +210,21 @@ func (s *GitHubReleaseServiceSuite) TestFetchChecksumFile_InvalidURL() {
 }
 
 func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Success() {
-	releaseJSON := `[
-	{
-		"tag_name": "v0.1.126-laffey.1",
-		"name": "Laffey API 0.1.126-laffey.1",
-		"body": "Release notes",
-		"html_url": "https://github.com/test/repo/releases/v0.1.126-laffey.1",
-		"draft": false,
-		"prerelease": true,
-		"assets": [
-			{
-				"name": "sub2api_laffey_0.1.126-laffey.1_linux_amd64.tar.gz",
-				"browser_download_url": "https://github.com/test/repo/releases/download/v0.1.126-laffey.1/sub2api_laffey_0.1.126-laffey.1_linux_amd64.tar.gz"
-			}
-		]
-	},
-	{
+	releaseJSON := `{
 		"tag_name": "v1.0.0",
 		"name": "Release 1.0.0",
 		"body": "Release notes",
 		"html_url": "https://github.com/test/repo/releases/v1.0.0",
-		"draft": false,
-		"prerelease": false,
 		"assets": [
 			{
 				"name": "app-linux-amd64.tar.gz",
 				"browser_download_url": "https://github.com/test/repo/releases/download/v1.0.0/app-linux-amd64.tar.gz"
 			}
 		]
-	}
-]`
+	}`
 
 	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(s.T(), "/repos/test/repo/releases", r.URL.Path)
-		require.Equal(s.T(), "10", r.URL.Query().Get("per_page"))
+		require.Equal(s.T(), "/repos/test/repo/releases/latest", r.URL.Path)
 		require.Equal(s.T(), "application/vnd.github.v3+json", r.Header.Get("Accept"))
 		require.Equal(s.T(), "Laffey-API-Updater", r.Header.Get("User-Agent"))
 		w.Header().Set("Content-Type", "application/json")
@@ -261,10 +242,80 @@ func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Success() {
 
 	release, err := s.client.FetchLatestRelease(context.Background(), "test/repo")
 	require.NoError(s.T(), err)
-	require.Equal(s.T(), "v0.1.126-laffey.1", release.TagName)
-	require.Equal(s.T(), "Laffey API 0.1.126-laffey.1", release.Name)
+	require.Equal(s.T(), "v1.0.0", release.TagName)
+	require.Equal(s.T(), "Release 1.0.0", release.Name)
 	require.Len(s.T(), release.Assets, 1)
-	require.Equal(s.T(), "sub2api_laffey_0.1.126-laffey.1_linux_amd64.tar.gz", release.Assets[0].Name)
+	require.Equal(s.T(), "app-linux-amd64.tar.gz", release.Assets[0].Name)
+}
+
+func (s *GitHubReleaseServiceSuite) TestFetchRecentReleases_Success() {
+	releasesJSON := `[
+		{
+			"tag_name": "v1.0.1",
+			"name": "Release 1.0.1",
+			"html_url": "https://github.com/test/repo/releases/v1.0.1",
+			"published_at": "2026-07-08T00:00:00Z",
+			"prerelease": false,
+			"assets": [
+				{
+					"name": "app-linux-amd64.tar.gz",
+					"browser_download_url": "https://github.com/test/repo/releases/download/v1.0.1/app-linux-amd64.tar.gz"
+				}
+			]
+		},
+		{
+			"tag_name": "v1.0.1-rc1",
+			"name": "Release 1.0.1-rc1",
+			"prerelease": true
+		},
+		{
+			"tag_name": "v1.0.0",
+			"name": "Release 1.0.0"
+		}
+	]`
+
+	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(s.T(), "/repos/test/repo/releases", r.URL.Path)
+		require.Equal(s.T(), "15", r.URL.Query().Get("per_page"))
+		require.Equal(s.T(), "application/vnd.github.v3+json", r.Header.Get("Accept"))
+		require.Equal(s.T(), "Laffey-API-Updater", r.Header.Get("User-Agent"))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(releasesJSON))
+	}))
+
+	s.client = &githubReleaseClient{
+		httpClient: &http.Client{
+			Transport: &testTransport{testServerURL: s.srv.URL},
+		},
+		downloadHTTPClient: &http.Client{},
+	}
+
+	releases, err := s.client.FetchRecentReleases(context.Background(), "test/repo", 15)
+	require.NoError(s.T(), err)
+	require.Len(s.T(), releases, 3)
+	require.Equal(s.T(), "v1.0.1", releases[0].TagName)
+	require.False(s.T(), releases[0].Prerelease)
+	require.Len(s.T(), releases[0].Assets, 1)
+	require.True(s.T(), releases[1].Prerelease)
+	require.Equal(s.T(), "v1.0.0", releases[2].TagName)
+}
+
+func (s *GitHubReleaseServiceSuite) TestFetchRecentReleases_Non200() {
+	s.srv = newLocalTestServer(s.T(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+
+	s.client = &githubReleaseClient{
+		httpClient: &http.Client{
+			Transport: &testTransport{testServerURL: s.srv.URL},
+		},
+		downloadHTTPClient: &http.Client{},
+	}
+
+	_, err := s.client.FetchRecentReleases(context.Background(), "test/repo", 15)
+	require.Error(s.T(), err)
+	require.Contains(s.T(), err.Error(), "403")
 }
 
 func (s *GitHubReleaseServiceSuite) TestFetchLatestRelease_Non200() {

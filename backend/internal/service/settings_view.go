@@ -201,7 +201,12 @@ type SystemSettings struct {
 	RewriteMessageCacheControl             bool   // 是否改写 messages[*].content[*].cache_control（默认 false）
 	AntigravityUserAgentVersion            string // Antigravity 上游 User-Agent 版本号；空值使用配置/默认值
 	OpenAICodexUserAgent                   string // OpenAI Codex 上游完整 User-Agent；空值使用内置默认
-	OpenAIAllowClaudeCodeCodexPlugin       bool   // 全局开关：是否额外放行 Claude Code 的 Codex 插件（默认 false）
+	MinCodexVersion                        string // codex_cli_only 最低 Codex 引擎版本；空=不检查
+	MaxCodexVersion                        string // codex_cli_only 最高 Codex 引擎版本；空=不检查
+	CodexCLIOnlyBlacklist                  string // codex_cli_only 全局黑名单 JSON（[]AllowedClientEntry，OR deny）
+	CodexCLIOnlyWhitelist                  string // codex_cli_only 全局白名单 JSON（[]AllowedClientEntry，AND allow）
+	CodexCLIOnlyAllowAppServerClients      bool   // codex_cli_only App Server 开关：对未列名客户端开闸（默认 false）
+	CodexCLIOnlyEngineFingerprintSignals   string // codex_cli_only 引擎指纹门信号列表 JSON（[]EngineFingerprintSignal）
 
 	// Web Search Emulation
 	WebSearchEmulationEnabled bool // 是否启用 web search 模拟
@@ -213,7 +218,29 @@ type SystemSettings struct {
 	PaymentVisibleMethodWxpayEnabled  bool
 
 	// OpenAI 账号调度
-	OpenAIAdvancedSchedulerEnabled bool
+	OpenAIAdvancedSchedulerEnabled                         bool
+	OpenAIAdvancedSchedulerStickyWeightedEnabled           bool
+	OpenAIAdvancedSchedulerSubscriptionPriorityEnabled     bool
+	OpenAIAdvancedSchedulerLBTopK                          string
+	OpenAIAdvancedSchedulerWeightPriority                  string
+	OpenAIAdvancedSchedulerWeightLoad                      string
+	OpenAIAdvancedSchedulerWeightQueue                     string
+	OpenAIAdvancedSchedulerWeightErrorRate                 string
+	OpenAIAdvancedSchedulerWeightTTFT                      string
+	OpenAIAdvancedSchedulerWeightReset                     string
+	OpenAIAdvancedSchedulerWeightQuotaHeadroom             string
+	OpenAIAdvancedSchedulerWeightPreviousResponse          string
+	OpenAIAdvancedSchedulerWeightSessionSticky             string
+	OpenAIAdvancedSchedulerEffectiveLBTopK                 string
+	OpenAIAdvancedSchedulerEffectiveWeightPriority         string
+	OpenAIAdvancedSchedulerEffectiveWeightLoad             string
+	OpenAIAdvancedSchedulerEffectiveWeightQueue            string
+	OpenAIAdvancedSchedulerEffectiveWeightErrorRate        string
+	OpenAIAdvancedSchedulerEffectiveWeightTTFT             string
+	OpenAIAdvancedSchedulerEffectiveWeightReset            string
+	OpenAIAdvancedSchedulerEffectiveWeightQuotaHeadroom    string
+	OpenAIAdvancedSchedulerEffectiveWeightPreviousResponse string
+	OpenAIAdvancedSchedulerEffectiveWeightSessionSticky    string
 
 	// 余额不足提醒
 	BalanceLowNotifyEnabled     bool
@@ -548,12 +575,16 @@ const (
 	OpenAIFastTierAny      = "all"      // 匹配任意已识别的 service_tier
 	OpenAIFastTierPriority = "priority" // 仅匹配 fast（priority）
 	OpenAIFastTierFlex     = "flex"     // 仅匹配 flex
+
+	// OpenAIFastPolicyActionForcePriority 会保留 service_tier 字段并强制写成
+	// priority，用于把 flex/auto/default/scale 等已识别 tier 收敛为 fast。
+	OpenAIFastPolicyActionForcePriority = "force_priority"
 )
 
 // OpenAIFastPolicyRule 单条 OpenAI fast/flex 策略规则
 type OpenAIFastPolicyRule struct {
 	ServiceTier          string   `json:"service_tier"`                     // "priority" | "flex" | "auto" | "default" | "scale" | "all"
-	Action               string   `json:"action"`                           // "pass" | "filter" | "block"
+	Action               string   `json:"action"`                           // "pass" | "filter" | "block" | "force_priority"
 	Scope                string   `json:"scope"`                            // "all" | "oauth" | "apikey" | "bedrock"
 	ErrorMessage         string   `json:"error_message,omitempty"`          // 自定义错误消息 (action=block 时生效)
 	ModelWhitelist       []string `json:"model_whitelist,omitempty"`        // 模型匹配模式列表（为空=对所有模型生效）

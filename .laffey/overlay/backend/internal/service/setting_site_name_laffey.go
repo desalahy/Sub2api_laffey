@@ -20,4 +20,3 @@ func resolveLaffeySiteName(ctx context.Context, repo SettingRepository, value st
 	}
 	return normalized
 }
-

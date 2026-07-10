@@ -21,6 +21,9 @@ const (
 	quotaDimDaily  = "daily"
 	quotaDimWeekly = "weekly"
 	quotaDimTotal  = "total"
+
+	defaultSiteName       = "Laffey API"
+	legacyDefaultSiteName = "Sub2API"
 )
 
 // quotaDimLabels maps dimension names to display labels.
@@ -291,7 +294,8 @@ func (s *BalanceNotifyService) getAccountQuotaNotifyEmails(ctx context.Context) 
 
 // getSiteName reads site name from settings with fallback.
 func (s *BalanceNotifyService) getSiteName(ctx context.Context) string {
-	return siteNameFromSettingRepo(ctx, s.settingRepo)
+	value, _ := s.settingRepo.GetValue(ctx, SettingKeySiteName)
+	return resolveLaffeySiteName(ctx, s.settingRepo, value)
 }
 
 // filterVerifiedEmails returns deduplicated, non-disabled, verified emails.

@@ -2,7 +2,6 @@ package service
 
 import (
 	"archive/tar"
-	"archive/zip"
 	"bufio"
 	"compress/gzip"
 	"context"
@@ -15,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +23,8 @@ import (
 )
 
 var (
-	ErrNoUpdateAvailable = infraerrors.Conflict("ALREADY_UP_TO_DATE", "no update available; current version is latest")
+	ErrNoUpdateAvailable         = infraerrors.Conflict("ALREADY_UP_TO_DATE", "no update available; current version is latest")
+	ErrRollbackVersionNotAllowed = infraerrors.BadRequest("ROLLBACK_VERSION_NOT_ALLOWED", "version is not in the allowed rollback list")
 )
 
 const (
@@ -37,6 +38,11 @@ const (
 
 	// Security: max download size (500MB)
 	maxDownloadSize = 500 * 1024 * 1024
+
+	// Rollback: expose at most the 3 most recent versions older than current
+	maxRollbackVersions = 3
+	// Fetch a few extra releases so filtering (current/newer/prerelease) still leaves enough candidates
+	rollbackFetchPageSize = 15
 )
 
 // UpdateCache defines cache operations for update service
@@ -48,6 +54,7 @@ type UpdateCache interface {
 // GitHubReleaseClient 获取 GitHub release 信息的接口
 type GitHubReleaseClient interface {
 	FetchLatestRelease(ctx context.Context, repo string) (*GitHubRelease, error)
+	FetchRecentReleases(ctx context.Context, repo string, perPage int) ([]*GitHubRelease, error)
 	DownloadFile(ctx context.Context, url, dest string, maxSize int64) error
 	FetchChecksumFile(ctx context.Context, url string) ([]byte, error)
 }
@@ -109,6 +116,13 @@ type GitHubRelease struct {
 	Assets      []GitHubAsset `json:"assets"`
 }
 
+// RollbackVersion describes a release version the system can roll back to
+type RollbackVersion struct {
+	Version     string `json:"version"` // without "v" prefix, e.g. "0.1.146"
+	PublishedAt string `json:"published_at"`
+	HTMLURL     string `json:"html_url"`
+}
+
 type GitHubAsset struct {
 	Name               string `json:"name"`
 	BrowserDownloadURL string `json:"browser_download_url"`
@@ -158,16 +172,19 @@ func (s *UpdateService) PerformUpdate(ctx context.Context) error {
 		return ErrNoUpdateAvailable
 	}
 
-	if err := validateSelfUpdateSupported(runtime.GOOS); err != nil {
-		return err
-	}
+	return s.applyReleaseAssets(ctx, info.ReleaseInfo.Assets)
+}
 
+// applyReleaseAssets downloads the platform archive from the given release assets,
+// verifies its checksum, and atomically swaps the running binary.
+// Shared by PerformUpdate (latest) and RollbackToVersion (specific older version).
+func (s *UpdateService) applyReleaseAssets(ctx context.Context, releaseAssets []Asset) error {
 	// Find matching archive and checksum for current platform
 	archiveName := s.getArchiveName()
 	var downloadURL string
 	var checksumURL string
 
-	for _, asset := range info.ReleaseInfo.Assets {
+	for _, asset := range releaseAssets {
 		if strings.Contains(asset.Name, archiveName) && !strings.HasSuffix(asset.Name, ".txt") {
 			downloadURL = asset.DownloadURL
 		}
@@ -264,10 +281,6 @@ func (s *UpdateService) PerformUpdate(ctx context.Context) error {
 
 // Rollback restores the previous version
 func (s *UpdateService) Rollback() error {
-	if err := validateSelfUpdateSupported(runtime.GOOS); err != nil {
-		return err
-	}
-
 	exePath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get executable path: %w", err)
@@ -288,6 +301,102 @@ func (s *UpdateService) Rollback() error {
 	}
 
 	return nil
+}
+
+// ListRollbackVersions returns up to maxRollbackVersions release versions that are
+// strictly older than the current version (the current version itself is excluded),
+// newest first. Draft and prerelease entries are skipped.
+func (s *UpdateService) ListRollbackVersions(ctx context.Context) ([]RollbackVersion, error) {
+	releases, err := s.fetchRollbackCandidates(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	versions := make([]RollbackVersion, 0, len(releases))
+	for _, r := range releases {
+		versions = append(versions, RollbackVersion{
+			Version:     strings.TrimPrefix(r.TagName, "v"),
+			PublishedAt: r.PublishedAt,
+			HTMLURL:     r.HTMLURL,
+		})
+	}
+	return versions, nil
+}
+
+// RollbackToVersion downloads and installs a specific older version.
+// The target must be one of the versions returned by ListRollbackVersions;
+// anything else (including the current version) is rejected.
+func (s *UpdateService) RollbackToVersion(ctx context.Context, version string) error {
+	target := strings.TrimPrefix(strings.TrimSpace(version), "v")
+	if target == "" {
+		return ErrRollbackVersionNotAllowed
+	}
+
+	releases, err := s.fetchRollbackCandidates(ctx)
+	if err != nil {
+		return err
+	}
+
+	var match *GitHubRelease
+	for _, r := range releases {
+		if strings.TrimPrefix(r.TagName, "v") == target {
+			match = r
+			break
+		}
+	}
+	if match == nil {
+		return ErrRollbackVersionNotAllowed
+	}
+
+	assets := make([]Asset, len(match.Assets))
+	for i, a := range match.Assets {
+		assets[i] = Asset{
+			Name:        a.Name,
+			DownloadURL: a.BrowserDownloadURL,
+			Size:        a.Size,
+		}
+	}
+
+	return s.applyReleaseAssets(ctx, assets)
+}
+
+// fetchRollbackCandidates fetches recent releases and keeps the newest
+// maxRollbackVersions entries strictly older than the current version.
+func (s *UpdateService) fetchRollbackCandidates(ctx context.Context) ([]*GitHubRelease, error) {
+	releases, err := s.githubClient.FetchRecentReleases(ctx, githubRepo, rollbackFetchPageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]bool, len(releases))
+	candidates := make([]*GitHubRelease, 0, maxRollbackVersions)
+	for _, r := range releases {
+		if r == nil || r.Draft || r.Prerelease {
+			continue
+		}
+		v := strings.TrimPrefix(r.TagName, "v")
+		if v == "" || seen[v] {
+			continue
+		}
+		// Only versions strictly older than current (also excludes current itself)
+		if compareVersions(v, s.currentVersion) >= 0 {
+			continue
+		}
+		seen[v] = true
+		candidates = append(candidates, r)
+	}
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return compareVersions(
+			strings.TrimPrefix(candidates[i].TagName, "v"),
+			strings.TrimPrefix(candidates[j].TagName, "v"),
+		) > 0
+	})
+
+	if len(candidates) > maxRollbackVersions {
+		candidates = candidates[:maxRollbackVersions]
+	}
+	return candidates, nil
 }
 
 func (s *UpdateService) fetchLatestRelease(ctx context.Context) (*UpdateInfo, error) {
@@ -331,13 +440,6 @@ func (s *UpdateService) getArchiveName() string {
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
 	return fmt.Sprintf("%s_%s", osName, arch)
-}
-
-func validateSelfUpdateSupported(goos string) error {
-	if goos == "windows" {
-		return fmt.Errorf("self-update is not supported on Windows; download and replace the release binary manually")
-	}
-	return nil
 }
 
 // validateDownloadURL checks if the URL is from an allowed domain
@@ -404,53 +506,6 @@ func (s *UpdateService) verifyChecksum(ctx context.Context, filePath, checksumUR
 }
 
 func (s *UpdateService) extractBinary(archivePath, destPath string) error {
-	const maxBinarySize = 500 * 1024 * 1024
-
-	if strings.HasSuffix(strings.ToLower(archivePath), ".zip") {
-		zr, err := zip.OpenReader(archivePath)
-		if err != nil {
-			return err
-		}
-		defer func() { _ = zr.Close() }()
-
-		for _, file := range zr.File {
-			if strings.Contains(file.Name, "..") {
-				return fmt.Errorf("path traversal attempt detected: %s", file.Name)
-			}
-			baseName := filepath.Base(file.Name)
-			if baseName != "sub2api" && baseName != "sub2api.exe" {
-				continue
-			}
-			if file.FileInfo().IsDir() {
-				continue
-			}
-			if file.UncompressedSize64 > maxBinarySize {
-				return fmt.Errorf("binary too large: %d bytes (max %d)", file.UncompressedSize64, maxBinarySize)
-			}
-
-			rc, err := file.Open()
-			if err != nil {
-				return err
-			}
-			out, err := os.Create(destPath)
-			if err != nil {
-				_ = rc.Close()
-				return err
-			}
-			if _, err := io.Copy(out, io.LimitReader(rc, maxBinarySize)); err != nil {
-				_ = rc.Close()
-				_ = out.Close()
-				return err
-			}
-			if err := rc.Close(); err != nil {
-				_ = out.Close()
-				return err
-			}
-			return out.Close()
-		}
-		return fmt.Errorf("binary not found in archive")
-	}
-
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return err
@@ -498,6 +553,7 @@ func (s *UpdateService) extractBinary(archivePath, destPath string) error {
 			// Only extract the specific binary we need
 			if baseName == "sub2api" || baseName == "sub2api.exe" {
 				// Additional security: limit file size (max 500MB)
+				const maxBinarySize = 500 * 1024 * 1024
 				if hdr.Size > maxBinarySize {
 					return fmt.Errorf("binary too large: %d bytes (max %d)", hdr.Size, maxBinarySize)
 				}
@@ -523,6 +579,7 @@ func (s *UpdateService) extractBinary(archivePath, destPath string) error {
 	}
 
 	// Direct copy for non-tar files (with size limit)
+	const maxBinarySize = 500 * 1024 * 1024
 	out, err := os.Create(destPath)
 	if err != nil {
 		return err
@@ -580,7 +637,7 @@ func (s *UpdateService) saveToCache(ctx context.Context, info *UpdateInfo) {
 	_ = s.cache.SetUpdateInfo(ctx, string(data), time.Duration(updateCacheTTL)*time.Second)
 }
 
-// compareVersions compares release versions, including fork suffixes like 0.1.126-laffey.2.
+// compareVersions compares semantic versions and Laffey patch revisions.
 func compareVersions(current, latest string) int {
 	currentParts := parseVersionNumbers(current)
 	latestParts := parseVersionNumbers(latest)
@@ -598,7 +655,6 @@ func compareVersions(current, latest string) int {
 		if i < len(latestParts) {
 			latestPart = latestParts[i]
 		}
-
 		if currentPart < latestPart {
 			return -1
 		}
@@ -616,9 +672,6 @@ func parseVersionNumbers(v string) []int {
 	})
 	result := make([]int, 0, len(parts))
 	for _, part := range parts {
-		if part == "" {
-			continue
-		}
 		if parsed, err := strconv.Atoi(part); err == nil {
 			result = append(result, parsed)
 		}
