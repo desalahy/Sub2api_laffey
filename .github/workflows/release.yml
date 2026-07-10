@@ -64,8 +64,20 @@ jobs:
           if git rev-parse --verify "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
             TAG_SHA="$(git rev-list -n 1 "$TAG_NAME")"
             if [[ "$TAG_SHA" != "$MASTER_SHA" ]]; then
-              echo "Existing tag $TAG_NAME does not point to current master" >&2
-              exit 1
+              VERSION="${TAG_NAME#v}"
+              MASTER_PARENT="$(git rev-parse "$MASTER_SHA^")"
+              MASTER_MESSAGE="$(git log -1 --format=%s "$MASTER_SHA")"
+              MASTER_VERSION="$(git show "$MASTER_SHA:backend/cmd/server/VERSION" | tr -d '\r\n')"
+              CHANGED_PATHS="$(git diff-tree --no-commit-id --name-only -r "$MASTER_SHA")"
+              EXPECTED_MESSAGE="chore: sync VERSION to $VERSION [skip ci]"
+
+              if [[ "$MASTER_PARENT" != "$TAG_SHA" ||
+                    "$MASTER_MESSAGE" != "$EXPECTED_MESSAGE" ||
+                    "$MASTER_VERSION" != "$VERSION" ||
+                    "$CHANGED_PATHS" != "backend/cmd/server/VERSION" ]]; then
+                echo "Existing tag $TAG_NAME is not current master or its verified VERSION sync parent" >&2
+                exit 1
+              fi
             fi
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             git config user.name "github-actions[bot]"
