@@ -1,10 +1,10 @@
 # Laffey Upstream Sync Report
 
 - Upstream repository: `Wei-Shaw/sub2api`
-- Upstream tag: `v0.1.150`
-- Upstream commit: `0dec1ad2922ff8c9d27b67f8a31dfb35bce1902b`
-- Base commit: `8728b724e18750989d9f9faefe76b921acd0c322`
-- Allowlisted brand differences: `137`
+- Upstream tag: `v0.1.151`
+- Upstream commit: `deff3123ded1d14e51df1fd1286e3d43ed9ec9bd`
+- Base commit: `68d68dee4b2e984460272c057b2fd80af7dcfb96`
+- Allowlisted brand differences: `138`
 
 ## Brand Difference Paths
 
@@ -20,6 +20,7 @@
 - `.laffey/browser/package-lock.json`
 - `.laffey/browser/package.json`
 - `.laffey/browser/playwright.config.ts`
+- `.laffey/generated-report.md`
 - `.laffey/overlay/CLA.md`
 - `.laffey/overlay/README.md`
 - `.laffey/overlay/README_CN.md`
