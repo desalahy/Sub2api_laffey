@@ -130,6 +130,7 @@
     {"path": ".goreleaser.yaml", "find": "project_name: sub2api", "replace": "project_name: sub2api_laffey", "expected_count": 1},
     {"path": ".goreleaser.yaml", "find": "/sub2api:", "replace": "/sub2api_laffey:", "expected_count": 30},
     {"path": ".goreleaser.yaml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
+    {"path": ".goreleaser.yaml", "find": "  prerelease: auto", "replace": "  prerelease: false", "expected_count": 1},
     {"path": ".goreleaser.simple.yaml", "find": "project_name: sub2api", "replace": "project_name: sub2api_laffey", "expected_count": 1},
     {"path": ".goreleaser.simple.yaml", "find": "/sub2api:", "replace": "/sub2api_laffey:", "expected_count": 4},
     {"path": ".goreleaser.simple.yaml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},

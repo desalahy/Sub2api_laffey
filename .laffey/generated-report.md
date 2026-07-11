@@ -2,8 +2,8 @@
 
 - Upstream repository: `Wei-Shaw/sub2api`
 - Upstream tag: `v0.1.151`
-- Upstream commit: `deff3123ded1d14e51df1fd1286e3d43ed9ec9bd`
-- Base commit: `68d68dee4b2e984460272c057b2fd80af7dcfb96`
+- Upstream commit: `e316ebf52838a89d57fc790981cce7520f819ac8`
+- Base commit: `a9d7263bd723786840aed74a04874a07ebb75733`
 - Allowlisted brand differences: `138`
 
 ## Brand Difference Paths

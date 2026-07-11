@@ -365,7 +365,7 @@ jobs:
 
           - Local Grok, payment, OAuth, and gateway implementations are discarded.
           - Where those capabilities exist in this release, the upstream implementation is retained unchanged.
-          - Only the paths declared in `.laffey/brand.json` differ from the upstream commit.
+          - Only the paths declared in .laffey/brand.json differ from the upstream commit.
 
           Merge remains manual and does not trigger a release.
           EOF
@@ -386,8 +386,8 @@ jobs:
       issues: write
       statuses: write
     steps:
-      - name: Mark candidate failed when a commit exists
-        if: needs.candidate.outputs.candidate_sha != ''
+      - name: Mark candidate failed when validation failed
+        if: ${{ needs.candidate.outputs.candidate_sha != '' && (needs.candidate.result != 'success' || needs.backend-unit.result != 'success' || needs.backend-integration.result != 'success' || needs.frontend.result != 'success' || needs.brand-contract.result != 'success' || needs.visual-smoke.result != 'success') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -399,15 +399,16 @@ jobs:
       - name: Create or update blocking issue
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.detect.outputs.tag || 'unknown' }}
         shell: bash
         run: |
           set -euo pipefail
           TITLE="Upstream sync blocked: $TAG"
           BODY="The automated Laffey snapshot rebuild failed. Review workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          ISSUE="$(gh issue list --state open --search "$TITLE in:title" --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n1)"
+          ISSUE="$(gh issue list --repo "$GH_REPO" --state open --search "$TITLE in:title" --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n1)"
           if [[ -n "$ISSUE" ]]; then
-            gh issue comment "$ISSUE" --body "$BODY"
+            gh issue comment "$ISSUE" --repo "$GH_REPO" --body "$BODY"
           else
-            gh issue create --title "$TITLE" --body "$BODY"
+            gh issue create --repo "$GH_REPO" --title "$TITLE" --body "$BODY"
           fi
