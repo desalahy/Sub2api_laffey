@@ -1,8 +1,6 @@
 {
   "allowlist": [
-    ".github/workflows/cla.yml",
-    ".github/workflows/release.yml",
-    ".github/workflows/sync-upstream.yml",
+    ".github/workflows/**",
     ".goreleaser.simple.yaml",
     ".goreleaser.yaml",
     ".laffey/**",
@@ -80,8 +78,7 @@
     "upstream_repository": "Wei-Shaw/sub2api"
   },
   "preserve_paths": [
-    ".github/workflows/release.yml",
-    ".github/workflows/sync-upstream.yml"
+    ".github/workflows"
   ],
   "replacements": [
     {"path": "backend/cmd/server/main.go", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
@@ -125,8 +122,7 @@
     {"path": "frontend/src/i18n/locales/zh/landing.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
     {"path": "frontend/src/i18n/locales/zh/landing.ts", "find": "    goToDashboard: '进入控制台',", "replace": "    goToDashboard: '进入控制台',\n    siteSubtitle: '可靠的 AI 接入，也保留一点属于拉菲的从容',", "expected_count": 1},
 
-    {"path": ".github/workflows/cla.yml", "find": "Wei-Shaw/sub2api", "replace": "desalahy/Sub2api_laffey", "expected_count": 5},
-    {"path": ".github/workflows/cla.yml", "find": "/blob/main/CLA.md", "replace": "/blob/master/CLA.md", "expected_count": 3},
+
     {"path": ".goreleaser.yaml", "find": "project_name: sub2api", "replace": "project_name: sub2api_laffey", "expected_count": 1},
     {"path": ".goreleaser.yaml", "find": "/sub2api:", "replace": "/sub2api_laffey:", "expected_count": 30},
     {"path": ".goreleaser.yaml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
