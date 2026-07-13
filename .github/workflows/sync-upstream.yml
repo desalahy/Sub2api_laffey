@@ -151,6 +151,7 @@ jobs:
           git remote add upstream https://github.com/Wei-Shaw/sub2api.git 2>/dev/null || true
           if [[ "$SOURCE" == "main" ]]; then
             git fetch upstream +refs/heads/main:refs/remotes/upstream-release/main
+            test "$(git rev-parse refs/remotes/upstream-release/main)" = "${{ needs.detect.outputs.upstream_commit }}"
             UPSTREAM_REF="refs/remotes/upstream-release/main"
           else
             python .laffey/tools/laffey_sync.py fetch --repo . --remote upstream --tag "$TAG" >/dev/null

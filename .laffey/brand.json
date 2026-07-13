@@ -145,7 +145,7 @@
     {"path": "deploy/DOCKER.md", "find": "https://github.com/weishaw/sub2api", "replace": "https://github.com/desalahy/Sub2api_laffey", "expected_count": 2},
     {"path": "deploy/Dockerfile", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
     {"path": "deploy/Dockerfile", "find": "https://github.com/Wei-Shaw/sub2api", "replace": "https://github.com/desalahy/Sub2api_laffey", "expected_count": 1},
-    {"path": "deploy/README.md", "find": "Sub2API", "replace": "Laffey API", "expected_count": 7},
+    {"path": "deploy/README.md", "find": "Sub2API", "replace": "Laffey API", "expected_count": 8},
     {"path": "deploy/README.md", "find": "Wei-Shaw/sub2api", "replace": "desalahy/Sub2api_laffey", "expected_count": 5},
     {"path": "deploy/build_image.sh", "find": "docker build -t sub2api:latest", "replace": "docker build -t sub2api_laffey:latest", "expected_count": 1},
     {"path": "deploy/config.example.yaml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 6},
