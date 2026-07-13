@@ -10,8 +10,16 @@ on:
         required: false
         default: "latest"
         type: string
+      upstream_source:
+        description: "Snapshot source: stable release tag or upstream main"
+        required: false
+        default: "release"
+        type: choice
+        options:
+          - release
+          - main
       force:
-        description: "Regenerate even when upstream.lock.json already has this tag"
+        description: "Regenerate even when the selected upstream source is already locked"
         required: false
         default: false
         type: boolean
@@ -29,6 +37,7 @@ jobs:
       base_sha: ${{ steps.resolve.outputs.base_sha }}
       release_url: ${{ steps.resolve.outputs.release_url }}
       tag: ${{ steps.resolve.outputs.tag }}
+      source: ${{ steps.resolve.outputs.source }}
       upstream_commit: ${{ steps.fetch.outputs.commit }}
       up_to_date: ${{ steps.resolve.outputs.up_to_date }}
     steps:
@@ -43,10 +52,15 @@ jobs:
         id: resolve
         env:
           REQUESTED_TAG: ${{ github.event.inputs.upstream_tag || 'latest' }}
+          UPSTREAM_SOURCE: ${{ github.event.inputs.upstream_source || 'release' }}
           FORCE_SYNC: ${{ github.event.inputs.force || 'false' }}
         shell: bash
         run: |
           set -euo pipefail
+          if [[ "$UPSTREAM_SOURCE" != "release" && "$UPSTREAM_SOURCE" != "main" ]]; then
+            echo "Unsupported upstream source: $UPSTREAM_SOURCE" >&2
+            exit 1
+          fi
           if [[ -z "$REQUESTED_TAG" || "$REQUESTED_TAG" == "latest" ]]; then
             RELEASE_JSON="$(python .laffey/tools/laffey_sync.py latest --repository Wei-Shaw/sub2api)"
             TAG="$(python -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])' <<<"$RELEASE_JSON")"
@@ -67,9 +81,25 @@ jobs:
           UP_TO_DATE=false
           if [[ "$FORCE_SYNC" != "true" && "$LOCKED_TAG" == "$TAG" ]]; then
             UP_TO_DATE=true
+            if [[ "$UPSTREAM_SOURCE" == "main" ]]; then
+              LOCKED_COMMIT="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          lock = json.loads(Path('.laffey/upstream.lock.json').read_text(encoding='utf-8'))
+          print(lock.get('upstream', {}).get('commit') or '')
+          PY
+          )"
+              git remote add upstream https://github.com/Wei-Shaw/sub2api.git 2>/dev/null || true
+              SOURCE_COMMIT="$(git ls-remote upstream refs/heads/main | awk '{print $1}')"
+              test -n "$SOURCE_COMMIT"
+              if [[ "$LOCKED_COMMIT" != "$SOURCE_COMMIT" ]]; then
+                UP_TO_DATE=false
+              fi
+            fi
           fi
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "source=$UPSTREAM_SOURCE" >> "$GITHUB_OUTPUT"
           echo "release_url=$RELEASE_URL" >> "$GITHUB_OUTPUT"
           echo "base_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "up_to_date=$UP_TO_DATE" >> "$GITHUB_OUTPUT"
@@ -81,7 +111,12 @@ jobs:
         run: |
           set -euo pipefail
           git remote add upstream https://github.com/Wei-Shaw/sub2api.git 2>/dev/null || true
-          COMMIT="$(python .laffey/tools/laffey_sync.py fetch --repo . --remote upstream --tag '${{ steps.resolve.outputs.tag }}')"
+          if [[ "${{ steps.resolve.outputs.source }}" == "main" ]]; then
+            git fetch upstream +refs/heads/main:refs/remotes/upstream-release/main
+            COMMIT="$(git rev-parse refs/remotes/upstream-release/main)"
+          else
+            COMMIT="$(python .laffey/tools/laffey_sync.py fetch --repo . --remote upstream --tag '${{ steps.resolve.outputs.tag }}')"
+          fi
           echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
 
   candidate:
@@ -109,14 +144,21 @@ jobs:
       - name: Build verified snapshot without executing upstream code
         env:
           TAG: ${{ needs.detect.outputs.tag }}
+          SOURCE: ${{ needs.detect.outputs.source }}
         shell: bash
         run: |
           set -euo pipefail
           git remote add upstream https://github.com/Wei-Shaw/sub2api.git 2>/dev/null || true
-          python .laffey/tools/laffey_sync.py fetch --repo . --remote upstream --tag "$TAG" >/dev/null
+          if [[ "$SOURCE" == "main" ]]; then
+            git fetch upstream +refs/heads/main:refs/remotes/upstream-release/main
+            UPSTREAM_REF="refs/remotes/upstream-release/main"
+          else
+            python .laffey/tools/laffey_sync.py fetch --repo . --remote upstream --tag "$TAG" >/dev/null
+            UPSTREAM_REF="refs/remotes/upstream-release/$TAG"
+          fi
           if ! python .laffey/tools/laffey_sync.py build \
             --repo . \
-            --upstream-ref "refs/remotes/upstream-release/$TAG" \
+            --upstream-ref "$UPSTREAM_REF" \
             --base-ref origin/master \
             --upstream-tag "$TAG" \
             --output "$RUNNER_TEMP/candidate" \
@@ -138,17 +180,25 @@ jobs:
         id: publish
         env:
           TAG: ${{ needs.detect.outputs.tag }}
+          SOURCE: ${{ needs.detect.outputs.source }}
         shell: bash
         run: |
           set -euo pipefail
           BRANCH="sync/upstream-$TAG"
+          if [[ "$SOURCE" == "main" ]]; then
+            BRANCH="sync/upstream-main-$TAG"
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -C "$BRANCH" origin/master
           git rm -r -q --ignore-unmatch .
           cp -a "$RUNNER_TEMP/candidate/." .
           git add -A
-          git commit -m "chore(sync): rebuild Laffey on upstream $TAG"
+          if [[ "$SOURCE" == "main" ]]; then
+            git commit -m "chore(sync): rebuild Laffey on upstream main after $TAG"
+          else
+            git commit -m "chore(sync): rebuild Laffey on upstream $TAG"
+          fi
 
           if git fetch origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null; then
             OLD_SHA="$(git rev-parse "refs/remotes/origin/$BRANCH")"
@@ -346,6 +396,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ needs.candidate.outputs.branch }}
           TAG: ${{ needs.detect.outputs.tag }}
+          SOURCE: ${{ needs.detect.outputs.source }}
+          UPSTREAM_COMMIT: ${{ needs.detect.outputs.upstream_commit }}
           RELEASE_URL: ${{ needs.detect.outputs.release_url }}
         shell: bash
         run: |
@@ -356,6 +408,7 @@ jobs:
           ## Validation
 
           - Upstream release: $RELEASE_URL
+          - Snapshot source: $SOURCE ($UPSTREAM_COMMIT)
           - Python sync contract: passed
           - Backend unit and integration suites: passed
           - Frontend lint, typecheck, full Vitest, and build: passed
@@ -370,11 +423,15 @@ jobs:
           Merge remains manual and does not trigger a release.
           EOF
 
+          TITLE="chore(sync): rebuild Laffey on upstream $TAG"
+          if [[ "$SOURCE" == "main" ]]; then
+            TITLE="chore(sync): rebuild Laffey on upstream main after $TAG"
+          fi
           PR_NUMBER="$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number // empty')"
           if [[ -n "$PR_NUMBER" ]]; then
-            gh pr edit "$PR_NUMBER" --title "chore(sync): rebuild Laffey on upstream $TAG" --body-file "$RUNNER_TEMP/pr-body.md"
+            gh pr edit "$PR_NUMBER" --title "$TITLE" --body-file "$RUNNER_TEMP/pr-body.md"
           else
-            gh pr create --base master --head "$BRANCH" --title "chore(sync): rebuild Laffey on upstream $TAG" --body-file "$RUNNER_TEMP/pr-body.md"
+            gh pr create --base master --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr-body.md"
           fi
 
   report-failure:
