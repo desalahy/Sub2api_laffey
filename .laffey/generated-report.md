@@ -1,13 +1,14 @@
 # Laffey Upstream Sync Report
 
 - Upstream repository: `Wei-Shaw/sub2api`
-- Upstream tag: `v0.1.152`
-- Upstream commit: `b73d8c3efe01a290eaaa9326b6e40ece02c67a0e`
-- Base commit: `516a657e3b8fcf51511e9961421c64dfa99ab8ab`
-- Allowlisted brand differences: `138`
+- Upstream tag: `v0.1.153`
+- Upstream commit: `7d239d62e8f1c6aea79164f88903f4158cbf2f98`
+- Base commit: `1f87cf6e76fbbd37d0a4473258d475f0cd24a23e`
+- Allowlisted brand differences: `141`
 
 ## Brand Difference Paths
 
+- `.github/workflows/backend-ci.yml`
 - `.github/workflows/cla.yml`
 - `.github/workflows/release.yml`
 - `.github/workflows/sync-upstream.yml`
@@ -93,9 +94,11 @@
 - `backend/internal/service/update_service_laffey_test.go`
 - `backend/internal/service/user_service.go`
 - `deploy/.env.example`
+- `deploy/APPLE_CONTAINER.md`
 - `deploy/DOCKER.md`
 - `deploy/Dockerfile`
 - `deploy/README.md`
+- `deploy/apple-container.sh`
 - `deploy/build_image.sh`
 - `deploy/config.example.yaml`
 - `deploy/docker-compose.dev.yml`
