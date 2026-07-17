@@ -48,6 +48,8 @@
     "deploy/sub2api-datamanagementd.service",
     "deploy/sub2api.service",
     "frontend/index.html",
+    "frontend/package.json",
+    "frontend/pnpm-lock.yaml",
     "frontend/public/assets/laffey/**",
     "frontend/public/logo.png",
     "frontend/src/components/layout/AuthLayout.vue",
@@ -105,7 +107,8 @@
     {"path": "backend/internal/service/user_service.go", "find": "siteName := \"Sub2API\"", "replace": "siteName := defaultSiteName", "expected_count": 1},
     {"path": "backend/internal/service/admin_compliance.go", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
 
-    {"path": "frontend/index.html", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
+    {"path": "frontend/package.json", "find": "  \"devDependencies\": {\n    \"@types/dompurify\": \"^3.0.5\",", "replace": "  \"devDependencies\": {\n    \"@intlify/message-compiler\": \"^9.14.5\",\n    \"@types/dompurify\": \"^3.0.5\",", "expected_count": 1},
+    {"path": "frontend/pnpm-lock.yaml", "find": "    devDependencies:\n      '@types/dompurify':\n        specifier: ^3.0.5\n        version: 3.2.0", "replace": "    devDependencies:\n      '@intlify/message-compiler':\n        specifier: ^9.14.5\n        version: 9.14.5\n      '@types/dompurify':\n        specifier: ^3.0.5\n        version: 3.2.0", "expected_count": 1},    {"path": "frontend/index.html", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
     {"path": "frontend/src/main.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
     {"path": "frontend/src/router/title.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
     {"path": "frontend/src/router/__tests__/title.spec.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
