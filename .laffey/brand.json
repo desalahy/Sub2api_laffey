@@ -543,7 +543,7 @@
     },
     {
       "path": "deploy/docker-compose.yml",
-      "find": "weishaw/sub2api:latest",
+      "find": "sub2api:latest",
       "replace": "ghcr.io/desalahy/sub2api_laffey:latest",
       "expected_count": 1
     },
