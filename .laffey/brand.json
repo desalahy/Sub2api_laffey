@@ -85,95 +85,522 @@
     ".github/workflows"
   ],
   "replacements": [
-    {"path": "backend/cmd/server/main.go", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "backend/internal/repository/github_release_service.go", "find": "Sub2API-Updater", "replace": "Laffey-API-Updater", "expected_count": 2},
-    {"path": "backend/internal/repository/github_release_service_test.go", "find": "Sub2API-Updater", "replace": "Laffey-API-Updater", "expected_count": 2},
-    {"path": "backend/internal/server/api_contract_test.go", "find": "\"site_name\": \"Sub2API\"", "replace": "\"site_name\": \"Laffey API\"", "expected_count": 2},
-    {"path": "backend/internal/service/update_service.go", "find": "githubRepo     = \"Wei-Shaw/sub2api\"", "replace": "githubRepo     = \"desalahy/Sub2api_laffey\"", "expected_count": 1},
-    {"path": "backend/internal/service/update_service.go", "find_file": "transforms/update_versions.before", "replace_file": "transforms/update_versions.after", "expected_count": 1},
-    {"path": "backend/internal/service/balance_notify_service.go", "find": "defaultSiteName = \"Sub2API\"", "replace": "defaultSiteName       = \"Laffey API\"\n\tlegacyDefaultSiteName = \"Sub2API\"", "expected_count": 1},
-    {"path": "backend/internal/service/balance_notify_service.go", "find_file": "transforms/balance_get_site.before", "replace_file": "transforms/balance_get_site.after", "expected_count": 1},
-    {"path": "backend/internal/service/auth_email_binding.go", "find": "siteName := \"Sub2API\"", "replace": "siteName := defaultSiteName", "expected_count": 1},
-    {"path": "backend/internal/service/auth_oauth_email_flow.go", "find": "siteName := \"Sub2API\"", "replace": "siteName := defaultSiteName", "expected_count": 1},
-    {"path": "backend/internal/service/auth_service.go", "find": "siteName := \"Sub2API\"", "replace": "siteName := defaultSiteName", "expected_count": 3},
-    {"path": "backend/internal/service/content_moderation.go", "find_file": "transforms/content_site_name.before", "replace_file": "transforms/content_site_name.after", "expected_count": 1},
-    {"path": "backend/internal/service/payment_order.go", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "backend/internal/service/payment_order_result_test.go", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "backend/internal/service/setting_parse.go", "find": "SettingKeySiteName:                                  \"Sub2API\",", "replace": "SettingKeySiteName:                                  defaultSiteName,", "expected_count": 1},
-    {"path": "backend/internal/service/setting_parse.go", "find": "s.getStringOrDefault(settings, SettingKeySiteName, \"Sub2API\")", "replace": "normalizeLaffeySiteName(settings[SettingKeySiteName])", "expected_count": 1},
-    {"path": "backend/internal/service/setting_public.go", "find": "s.getStringOrDefault(settings, SettingKeySiteName, \"Sub2API\")", "replace": "resolveLaffeySiteName(ctx, s.settingRepo, settings[SettingKeySiteName])", "expected_count": 1},
-    {"path": "backend/internal/service/setting_features.go", "find_file": "transforms/setting_get_site.before", "replace_file": "transforms/setting_get_site.after", "expected_count": 1},
-    {"path": "backend/internal/service/totp_service.go", "find": "totpIssuer      = \"Sub2API\"", "replace": "totpIssuer      = \"Laffey API\"", "expected_count": 1},
-    {"path": "backend/internal/service/user_service.go", "find": "siteName := \"Sub2API\"", "replace": "siteName := defaultSiteName", "expected_count": 1},
-    {"path": "backend/internal/service/admin_compliance.go", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-
-    {"path": "frontend/package.json", "find": "  \"devDependencies\": {\n    \"@types/dompurify\": \"^3.0.5\",", "replace": "  \"devDependencies\": {\n    \"@intlify/message-compiler\": \"^9.14.5\",\n    \"@types/dompurify\": \"^3.0.5\",", "expected_count": 1},
-    {"path": "frontend/pnpm-lock.yaml", "find": "    devDependencies:\n      '@types/dompurify':\n        specifier: ^3.0.5\n        version: 3.2.0", "replace": "    devDependencies:\n      '@intlify/message-compiler':\n        specifier: ^9.14.5\n        version: 9.14.5\n      '@types/dompurify':\n        specifier: ^3.0.5\n        version: 3.2.0", "expected_count": 1},    {"path": "frontend/index.html", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": "frontend/src/main.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": "frontend/src/router/title.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": "frontend/src/router/__tests__/title.spec.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "frontend/src/stores/app.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "frontend/src/views/KeyUsageView.vue", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": "frontend/src/views/KeyUsageView.vue", "find": "https://github.com/Wei-Shaw/sub2api", "replace": "https://github.com/desalahy/Sub2api_laffey", "expected_count": 1},
-    {"path": "frontend/src/views/admin/SettingsView.vue", "find": "Sub2API", "replace": "Laffey API", "expected_count": 3},
-    {"path": "frontend/src/views/admin/SettingsView.vue", "find": "https://github.com/Wei-Shaw/sub2api/blob/main", "replace": "https://github.com/desalahy/Sub2api_laffey/blob/master", "expected_count": 4},
-    {"path": "frontend/src/views/admin/__tests__/SettingsView.spec.ts", "find": "https://github.com/Wei-Shaw/sub2api/blob/main", "replace": "https://github.com/desalahy/Sub2api_laffey/blob/master", "expected_count": 2},
-    {"path": "frontend/src/views/auth/EmailVerifyView.vue", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "frontend/src/views/auth/RegisterView.vue", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "frontend/src/views/public/LegalDocumentView.vue", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": "frontend/src/views/user/KeysView.vue", "find": "'sub2api'", "replace": "'Laffey API'", "expected_count": 2},
-    {"path": "frontend/src/i18n/locales/en/landing.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "frontend/src/i18n/locales/en/landing.ts", "find": "    goToDashboard: 'Go to Dashboard',", "replace": "    goToDashboard: 'Go to Dashboard',\n    siteSubtitle: 'Reliable AI access, with a little Laffey calm',", "expected_count": 1},
-    {"path": "frontend/src/i18n/locales/zh/landing.ts", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "frontend/src/i18n/locales/zh/landing.ts", "find": "    goToDashboard: '进入控制台',", "replace": "    goToDashboard: '进入控制台',\n    siteSubtitle: '可靠的 AI 接入，也保留一点属于拉菲的从容',", "expected_count": 1},
-
-
-    {"path": ".goreleaser.yaml", "find": "project_name: sub2api", "replace": "project_name: sub2api_laffey", "expected_count": 1},
-    {"path": ".goreleaser.yaml", "find": "/sub2api:", "replace": "/sub2api_laffey:", "expected_count": 30},
-    {"path": ".goreleaser.yaml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": ".goreleaser.yaml", "find": "  prerelease: auto", "replace": "  prerelease: false", "expected_count": 1},
-    {"path": ".goreleaser.simple.yaml", "find": "project_name: sub2api", "replace": "project_name: sub2api_laffey", "expected_count": 1},
-    {"path": ".goreleaser.simple.yaml", "find": "/sub2api:", "replace": "/sub2api_laffey:", "expected_count": 4},
-    {"path": ".goreleaser.simple.yaml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": "Dockerfile", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "Dockerfile", "find": "https://github.com/Wei-Shaw/sub2api", "replace": "https://github.com/desalahy/Sub2api_laffey", "expected_count": 1},
-    {"path": "Dockerfile.goreleaser", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "Dockerfile.goreleaser", "find": "https://github.com/Wei-Shaw/sub2api", "replace": "https://github.com/desalahy/Sub2api_laffey", "expected_count": 1},
-
-    {"path": "deploy/.env.example", "find": "Sub2API", "replace": "Laffey API", "expected_count": 4},
-    {"path": "deploy/DOCKER.md", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "deploy/DOCKER.md", "find": "weishaw/sub2api:latest", "replace": "ghcr.io/desalahy/sub2api_laffey:latest", "expected_count": 2},
-    {"path": "deploy/DOCKER.md", "find": "https://github.com/weishaw/sub2api", "replace": "https://github.com/desalahy/Sub2api_laffey", "expected_count": 2},
-    {"path": "deploy/Dockerfile", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "deploy/Dockerfile", "find": "https://github.com/Wei-Shaw/sub2api", "replace": "https://github.com/desalahy/Sub2api_laffey", "expected_count": 1},
-    {"path": "deploy/README.md", "find": "Sub2API", "replace": "Laffey API", "expected_count": 8},
-    {"path": "deploy/README.md", "find": "Wei-Shaw/sub2api", "replace": "desalahy/Sub2api_laffey", "expected_count": 5},
-    {"path": "deploy/APPLE_CONTAINER.md", "find": "Sub2API", "replace": "Laffey API", "expected_count": 9},
-    {"path": "deploy/APPLE_CONTAINER.md", "find": "Wei-Shaw/sub2api", "replace": "desalahy/Sub2api_laffey", "expected_count": 1},
-    {"path": "deploy/APPLE_CONTAINER.md", "find": "cd sub2api/deploy", "replace": "cd Sub2api_laffey/deploy", "expected_count": 1},
-    {"path": "deploy/APPLE_CONTAINER.md", "find": "weishaw/sub2api:latest", "replace": "ghcr.io/desalahy/sub2api_laffey:latest", "expected_count": 2},
-    {"path": "deploy/apple-container.sh", "find": "Sub2API", "replace": "Laffey API", "expected_count": 12},
-    {"path": "deploy/apple-container.sh", "find": "weishaw/sub2api:latest", "replace": "ghcr.io/desalahy/sub2api_laffey:latest", "expected_count": 1},
-    {"path": "deploy/.env.example", "find": "weishaw/sub2api:latest", "replace": "ghcr.io/desalahy/sub2api_laffey:latest", "expected_count": 1},
-    {"path": "deploy/build_image.sh", "find": "docker build -t sub2api:latest", "replace": "docker build -t sub2api_laffey:latest", "expected_count": 1},
-    {"path": "deploy/config.example.yaml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 6},
-    {"path": "deploy/config.example.yaml", "find": "Wei-Shaw/sub2api", "replace": "desalahy/Sub2api_laffey", "expected_count": 1},
-    {"path": "deploy/docker-compose.dev.yml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": "deploy/docker-compose.local.yml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "deploy/docker-compose.local.yml", "find": "weishaw/sub2api:latest", "replace": "ghcr.io/desalahy/sub2api_laffey:latest", "expected_count": 1},
-    {"path": "deploy/docker-compose.standalone.yml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "deploy/docker-compose.standalone.yml", "find": "weishaw/sub2api:latest", "replace": "ghcr.io/desalahy/sub2api_laffey:latest", "expected_count": 1},
-    {"path": "deploy/docker-compose.yml", "find": "Sub2API", "replace": "Laffey API", "expected_count": 2},
-    {"path": "deploy/docker-compose.yml", "find": "weishaw/sub2api:latest", "replace": "ghcr.io/desalahy/sub2api_laffey:latest", "expected_count": 1},
-    {"path": "deploy/docker-deploy.sh", "find": "Sub2API", "replace": "Laffey API", "expected_count": 3},
-    {"path": "deploy/docker-deploy.sh", "find": "Wei-Shaw/sub2api", "replace": "desalahy/Sub2api_laffey", "expected_count": 1},
-    {"path": "deploy/install.sh", "find": "Sub2API", "replace": "Laffey API", "expected_count": 26},
-    {"path": "deploy/install.sh", "find": "Wei-Shaw/sub2api", "replace": "desalahy/Sub2api_laffey", "expected_count": 3},
-    {"path": "deploy/install.sh", "find": "sub2api_${version_num}_${OS}_${ARCH}.tar.gz", "replace": "sub2api_laffey_${version_num}_${OS}_${ARCH}.tar.gz", "expected_count": 1},
-    {"path": "deploy/install.sh", "find": "grep -oE 'v?[0-9]+\\.[0-9]+\\.[0-9]+'", "replace": "grep -oE 'v?[0-9]+\\.[0-9]+\\.[0-9]+-laffey\\.[0-9]+'", "expected_count": 2},
-    {"path": "deploy/sub2api-datamanagementd.service", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": "deploy/sub2api.service", "find": "Sub2API", "replace": "Laffey API", "expected_count": 1},
-    {"path": "deploy/sub2api.service", "find": "Wei-Shaw/sub2api", "replace": "desalahy/Sub2api_laffey", "expected_count": 1}
+    {
+      "path": "backend/cmd/server/main.go",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "backend/internal/repository/github_release_service.go",
+      "find": "Sub2API-Updater",
+      "replace": "Laffey-API-Updater",
+      "expected_count": 2
+    },
+    {
+      "path": "backend/internal/repository/github_release_service_test.go",
+      "find": "Sub2API-Updater",
+      "replace": "Laffey-API-Updater",
+      "expected_count": 2
+    },
+    {
+      "path": "backend/internal/server/api_contract_test.go",
+      "find": "\"site_name\": \"Sub2API\"",
+      "replace": "\"site_name\": \"Laffey API\"",
+      "expected_count": 2
+    },
+    {
+      "path": "backend/internal/service/update_service.go",
+      "find": "githubRepo     = \"Wei-Shaw/sub2api\"",
+      "replace": "githubRepo     = \"desalahy/Sub2api_laffey\"",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/update_service.go",
+      "find_file": "transforms/update_versions.before",
+      "replace_file": "transforms/update_versions.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/balance_notify_service.go",
+      "find": "defaultSiteName = \"Sub2API\"",
+      "replace": "defaultSiteName       = \"Laffey API\"\n\tlegacyDefaultSiteName = \"Sub2API\"",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/balance_notify_service.go",
+      "find_file": "transforms/balance_get_site.before",
+      "replace_file": "transforms/balance_get_site.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/auth_email_binding.go",
+      "find": "siteName := \"Sub2API\"",
+      "replace": "siteName := defaultSiteName",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/auth_oauth_email_flow.go",
+      "find": "siteName := \"Sub2API\"",
+      "replace": "siteName := defaultSiteName",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/auth_service.go",
+      "find": "siteName := \"Sub2API\"",
+      "replace": "siteName := defaultSiteName",
+      "expected_count": 3
+    },
+    {
+      "path": "backend/internal/service/content_moderation.go",
+      "find_file": "transforms/content_site_name.before",
+      "replace_file": "transforms/content_site_name.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/payment_order.go",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "backend/internal/service/payment_order_result_test.go",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "backend/internal/service/setting_parse.go",
+      "find": "SettingKeySiteName:                                  \"Sub2API\",",
+      "replace": "SettingKeySiteName:                                  defaultSiteName,",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/setting_parse.go",
+      "find": "s.getStringOrDefault(settings, SettingKeySiteName, \"Sub2API\")",
+      "replace": "normalizeLaffeySiteName(settings[SettingKeySiteName])",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/setting_public.go",
+      "find": "s.getStringOrDefault(settings, SettingKeySiteName, \"Sub2API\")",
+      "replace": "resolveLaffeySiteName(ctx, s.settingRepo, settings[SettingKeySiteName])",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/setting_features.go",
+      "find_file": "transforms/setting_get_site.before",
+      "replace_file": "transforms/setting_get_site.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/totp_service.go",
+      "find": "totpIssuer      = \"Sub2API\"",
+      "replace": "totpIssuer      = \"Laffey API\"",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/user_service.go",
+      "find": "siteName := \"Sub2API\"",
+      "replace": "siteName := defaultSiteName",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/admin_compliance.go",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/package.json",
+      "find": "  \"devDependencies\": {\n    \"@types/dompurify\": \"^3.0.5\",",
+      "replace": "  \"devDependencies\": {\n    \"@intlify/message-compiler\": \"9.14.5\",\n    \"@types/dompurify\": \"^3.0.5\",",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/pnpm-lock.yaml",
+      "find": "    devDependencies:\n      '@types/dompurify':\n        specifier: ^3.0.5\n        version: 3.2.0",
+      "replace": "    devDependencies:\n      '@intlify/message-compiler':\n        specifier: 9.14.5\n        version: 9.14.5\n      '@types/dompurify':\n        specifier: ^3.0.5\n        version: 3.2.0",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/index.html",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/main.ts",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/router/title.ts",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/router/__tests__/title.spec.ts",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/src/stores/app.ts",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/src/views/KeyUsageView.vue",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/views/KeyUsageView.vue",
+      "find": "https://github.com/Wei-Shaw/sub2api",
+      "replace": "https://github.com/desalahy/Sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/views/admin/SettingsView.vue",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 3
+    },
+    {
+      "path": "frontend/src/views/admin/SettingsView.vue",
+      "find": "https://github.com/Wei-Shaw/sub2api/blob/main",
+      "replace": "https://github.com/desalahy/Sub2api_laffey/blob/master",
+      "expected_count": 4
+    },
+    {
+      "path": "frontend/src/views/admin/__tests__/SettingsView.spec.ts",
+      "find": "https://github.com/Wei-Shaw/sub2api/blob/main",
+      "replace": "https://github.com/desalahy/Sub2api_laffey/blob/master",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/src/views/auth/EmailVerifyView.vue",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/src/views/auth/RegisterView.vue",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/src/views/public/LegalDocumentView.vue",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/views/user/KeysView.vue",
+      "find": "'sub2api'",
+      "replace": "'Laffey API'",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/src/i18n/locales/en/landing.ts",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/src/i18n/locales/en/landing.ts",
+      "find": "    goToDashboard: 'Go to Dashboard',",
+      "replace": "    goToDashboard: 'Go to Dashboard',\n    siteSubtitle: 'Reliable AI access, with a little Laffey calm',",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/i18n/locales/zh/landing.ts",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/src/i18n/locales/zh/landing.ts",
+      "find": "    goToDashboard: '进入控制台',",
+      "replace": "    goToDashboard: '进入控制台',\n    siteSubtitle: '可靠的 AI 接入，也保留一点属于拉菲的从容',",
+      "expected_count": 1
+    },
+    {
+      "path": ".goreleaser.yaml",
+      "find": "project_name: sub2api",
+      "replace": "project_name: sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": ".goreleaser.yaml",
+      "find": "/sub2api:",
+      "replace": "/sub2api_laffey:",
+      "expected_count": 30
+    },
+    {
+      "path": ".goreleaser.yaml",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": ".goreleaser.yaml",
+      "find": "  prerelease: auto",
+      "replace": "  prerelease: false",
+      "expected_count": 1
+    },
+    {
+      "path": ".goreleaser.simple.yaml",
+      "find": "project_name: sub2api",
+      "replace": "project_name: sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": ".goreleaser.simple.yaml",
+      "find": "/sub2api:",
+      "replace": "/sub2api_laffey:",
+      "expected_count": 4
+    },
+    {
+      "path": ".goreleaser.simple.yaml",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": "Dockerfile",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "Dockerfile",
+      "find": "https://github.com/Wei-Shaw/sub2api",
+      "replace": "https://github.com/desalahy/Sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": "Dockerfile.goreleaser",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "Dockerfile.goreleaser",
+      "find": "https://github.com/Wei-Shaw/sub2api",
+      "replace": "https://github.com/desalahy/Sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/.env.example",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 4
+    },
+    {
+      "path": "deploy/DOCKER.md",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/DOCKER.md",
+      "find": "weishaw/sub2api:latest",
+      "replace": "ghcr.io/desalahy/sub2api_laffey:latest",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/DOCKER.md",
+      "find": "https://github.com/weishaw/sub2api",
+      "replace": "https://github.com/desalahy/Sub2api_laffey",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/Dockerfile",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/Dockerfile",
+      "find": "https://github.com/Wei-Shaw/sub2api",
+      "replace": "https://github.com/desalahy/Sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/README.md",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 8
+    },
+    {
+      "path": "deploy/README.md",
+      "find": "Wei-Shaw/sub2api",
+      "replace": "desalahy/Sub2api_laffey",
+      "expected_count": 5
+    },
+    {
+      "path": "deploy/APPLE_CONTAINER.md",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 9
+    },
+    {
+      "path": "deploy/APPLE_CONTAINER.md",
+      "find": "Wei-Shaw/sub2api",
+      "replace": "desalahy/Sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/APPLE_CONTAINER.md",
+      "find": "cd sub2api/deploy",
+      "replace": "cd Sub2api_laffey/deploy",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/APPLE_CONTAINER.md",
+      "find": "weishaw/sub2api:latest",
+      "replace": "ghcr.io/desalahy/sub2api_laffey:latest",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/apple-container.sh",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 12
+    },
+    {
+      "path": "deploy/apple-container.sh",
+      "find": "weishaw/sub2api:latest",
+      "replace": "ghcr.io/desalahy/sub2api_laffey:latest",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/.env.example",
+      "find": "weishaw/sub2api:latest",
+      "replace": "ghcr.io/desalahy/sub2api_laffey:latest",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/build_image.sh",
+      "find": "docker build -t sub2api:latest",
+      "replace": "docker build -t sub2api_laffey:latest",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/config.example.yaml",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 6
+    },
+    {
+      "path": "deploy/config.example.yaml",
+      "find": "Wei-Shaw/sub2api",
+      "replace": "desalahy/Sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/docker-compose.dev.yml",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/docker-compose.local.yml",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/docker-compose.local.yml",
+      "find": "weishaw/sub2api:latest",
+      "replace": "ghcr.io/desalahy/sub2api_laffey:latest",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/docker-compose.standalone.yml",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/docker-compose.standalone.yml",
+      "find": "weishaw/sub2api:latest",
+      "replace": "ghcr.io/desalahy/sub2api_laffey:latest",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/docker-compose.yml",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/docker-compose.yml",
+      "find": "weishaw/sub2api:latest",
+      "replace": "ghcr.io/desalahy/sub2api_laffey:latest",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/docker-deploy.sh",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 3
+    },
+    {
+      "path": "deploy/docker-deploy.sh",
+      "find": "Wei-Shaw/sub2api",
+      "replace": "desalahy/Sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/install.sh",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 26
+    },
+    {
+      "path": "deploy/install.sh",
+      "find": "Wei-Shaw/sub2api",
+      "replace": "desalahy/Sub2api_laffey",
+      "expected_count": 3
+    },
+    {
+      "path": "deploy/install.sh",
+      "find": "sub2api_${version_num}_${OS}_${ARCH}.tar.gz",
+      "replace": "sub2api_laffey_${version_num}_${OS}_${ARCH}.tar.gz",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/install.sh",
+      "find": "grep -oE 'v?[0-9]+\\.[0-9]+\\.[0-9]+'",
+      "replace": "grep -oE 'v?[0-9]+\\.[0-9]+\\.[0-9]+-laffey\\.[0-9]+'",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/sub2api-datamanagementd.service",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/sub2api.service",
+      "find": "Sub2API",
+      "replace": "Laffey API",
+      "expected_count": 1
+    },
+    {
+      "path": "deploy/sub2api.service",
+      "find": "Wei-Shaw/sub2api",
+      "replace": "desalahy/Sub2api_laffey",
+      "expected_count": 1
+    }
   ],
   "schema_version": 1
 }
