@@ -1,10 +1,10 @@
 # Laffey Upstream Sync Report
 
 - Upstream repository: `Wei-Shaw/sub2api`
-- Upstream tag: `v0.1.159`
-- Upstream commit: `2a75d7d2387587d86ca3c5e5cd8ca96cf3d104c6`
-- Base commit: `2f9e32aefcaeb8951418edd575e1c153510cd500`
-- Allowlisted brand differences: `143`
+- Upstream tag: `v0.1.161`
+- Upstream commit: `19149ca196eeae4a4482e5299dc6fa4ba0b06c8c`
+- Base commit: `2ca4c3e95f1f388487e4315a4d67e327d5646c7b`
+- Allowlisted brand differences: `141`
 
 ## Brand Difference Paths
 
@@ -110,8 +110,6 @@
 - `deploy/sub2api-datamanagementd.service`
 - `deploy/sub2api.service`
 - `frontend/index.html`
-- `frontend/package.json`
-- `frontend/pnpm-lock.yaml`
 - `frontend/public/assets/laffey/chibi/laffey-idol-chibi.png`
 - `frontend/public/assets/laffey/chibi/laffey-snack-chibi.png`
 - `frontend/public/logo.png`
