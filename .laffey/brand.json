@@ -497,7 +497,7 @@
       "path": "deploy/config.example.yaml",
       "find": "Sub2API",
       "replace": "Laffey API",
-      "expected_count": 6
+      "expected_count": 8
     },
     {
       "path": "deploy/config.example.yaml",
