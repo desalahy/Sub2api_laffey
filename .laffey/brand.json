@@ -95,7 +95,7 @@
       "path": "backend/internal/repository/github_release_service.go",
       "find": "Sub2API-Updater",
       "replace": "Laffey-API-Updater",
-      "expected_count": 2
+      "expected_count": 1
     },
     {
       "path": "backend/internal/repository/github_release_service_test.go",
