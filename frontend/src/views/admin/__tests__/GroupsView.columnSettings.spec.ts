@@ -48,6 +48,7 @@ vi.mock('@/api/admin', () => ({
     groups: {
       list: listGroups,
       getAll: getAllGroups,
+      getLiveCapability: vi.fn(() => Promise.resolve({ supported: false })),
       getModelsListCandidates,
       getUsageSummary,
       getCapacitySummary,
