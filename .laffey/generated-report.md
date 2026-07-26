@@ -1,10 +1,10 @@
 # Laffey Upstream Sync Report
 
 - Upstream repository: `Wei-Shaw/sub2api`
-- Upstream tag: `v0.1.164`
-- Upstream commit: `cd8bb98c44303b2c8f04c0da340447c992f0cb7d`
-- Base commit: `4f0983b1556a391bd803675185fea7a5ec545b09`
-- Allowlisted brand differences: `142`
+- Upstream tag: `v0.1.165`
+- Upstream commit: `e9a58c1cb8b5ef626a75c93b4d953fde5e67aa29`
+- Base commit: `2775b7e615a4213988cefce92b3c73cf190bf892`
+- Allowlisted brand differences: `146`
 
 ## Brand Difference Paths
 
@@ -110,10 +110,12 @@
 - `deploy/sub2api-datamanagementd.service`
 - `deploy/sub2api.service`
 - `frontend/index.html`
+- `frontend/package.json`
 - `frontend/public/assets/laffey/chibi/laffey-idol-chibi.png`
 - `frontend/public/assets/laffey/chibi/laffey-snack-chibi.png`
 - `frontend/public/logo.png`
 - `frontend/src/api/__tests__/admin.system.rollback.spec.ts`
+- `frontend/src/components/layout/AppSidebar.vue`
 - `frontend/src/components/layout/AuthLayout.vue`
 - `frontend/src/constants/branding.ts`
 - `frontend/src/i18n/locales/en/landing.ts`
@@ -126,6 +128,8 @@
 - `frontend/src/views/HomeView.vue`
 - `frontend/src/views/KeyUsageView.vue`
 - `frontend/src/views/admin/SettingsView.vue`
+- `frontend/src/views/admin/__tests__/GroupsView.columnSettings.spec.ts`
+- `frontend/src/views/admin/__tests__/GroupsView.duplicate.spec.ts`
 - `frontend/src/views/admin/__tests__/SettingsView.spec.ts`
 - `frontend/src/views/auth/EmailVerifyView.vue`
 - `frontend/src/views/auth/RegisterView.vue`

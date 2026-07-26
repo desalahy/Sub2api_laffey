@@ -32,6 +32,7 @@ vi.mock('@/api/admin', () => ({
       getUsageSummary,
       getCapacitySummary,
       getAll: vi.fn(),
+      getLiveCapability: vi.fn(() => Promise.resolve({ supported: false })),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
