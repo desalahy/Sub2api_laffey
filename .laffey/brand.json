@@ -644,25 +644,13 @@
     {
       "path": "frontend/src/views/admin/__tests__/GroupsView.columnSettings.spec.ts",
       "find": "      getAll: getAllGroups,\n",
-      "replace": "      getAll: getAllGroups,\n      getLiveCapability: vi.fn(),\n",
+      "replace": "      getAll: getAllGroups,\n      getLiveCapability: vi.fn(() => Promise.resolve({ supported: false })),\n",
       "expected_count": 1
     },
     {
       "path": "frontend/src/views/admin/__tests__/GroupsView.duplicate.spec.ts",
       "find": "      getAll: vi.fn(),\n",
-      "replace": "      getAll: vi.fn(),\n      getLiveCapability: vi.fn(),\n",
-      "expected_count": 1
-    },
-    {
-      "path": "frontend/src/views/admin/__tests__/GroupsView.columnSettings.spec.ts",
-      "find": "      getLiveCapability: vi.fn(),\n",
-      "replace": "      getLiveCapability: vi.fn(() => Promise.resolve({ supported: false })),\n",
-      "expected_count": 1
-    },
-    {
-      "path": "frontend/src/views/admin/__tests__/GroupsView.duplicate.spec.ts",
-      "find": "      getLiveCapability: vi.fn(),\n",
-      "replace": "      getLiveCapability: vi.fn(() => Promise.resolve({ supported: false })),\n",
+      "replace": "      getAll: vi.fn(),\n      getLiveCapability: vi.fn(() => Promise.resolve({ supported: false })),\n",
       "expected_count": 1
     }
   ],
