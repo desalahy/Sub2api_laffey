@@ -226,30 +226,6 @@
       "expected_count": 1
     },
     {
-      "path": "frontend/package.json",
-      "find": "\"postcss\": \"^8.4.32\"",
-      "replace": "\"postcss\": \"^8.5.12\"",
-      "expected_count": 1
-    },
-    {
-      "path": "frontend/pnpm-lock.yaml",
-      "find": "^8.4.32",
-      "replace": "^8.5.12",
-      "expected_count": 1
-    },
-    {
-      "path": "frontend/pnpm-lock.yaml",
-      "find": "8.5.6",
-      "replace": "8.5.12",
-      "expected_count": 21
-    },
-    {
-      "path": "frontend/pnpm-lock.yaml",
-      "find": "sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==",
-      "replace": "sha512-W62t/Se6rA0Az3DfCL0AqJwXuKwBeYg6nOaIgzP+xZ7N5BFCI7DYi1qs6ygUYT6rvfi6t9k65UMLJC+PHZpDAA==",
-      "expected_count": 1
-    },
-    {
       "path": "frontend/index.html",
       "find": "<link rel=\"icon\" type=\"image/svg+xml\" href=\"/logo.svg\" />",
       "replace": "<link rel=\"icon\" type=\"image/png\" href=\"/logo.png\" />",
@@ -649,6 +625,18 @@
       "path": "deploy/sub2api.service",
       "find": "Wei-Shaw/sub2api",
       "replace": "desalahy/Sub2api_laffey",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/package.json",
+      "find": "\"postcss\": \"^8.4.32\"",
+      "replace": "\"postcss\": \">=8.5.18\"",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/package.json",
+      "find": "\"postcss\": \"^8.5.12\"",
+      "replace": "\"postcss\": \">=8.5.18\"",
       "expected_count": 1
     }
   ],
