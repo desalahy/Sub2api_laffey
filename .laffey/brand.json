@@ -626,6 +626,18 @@
       "find": "Wei-Shaw/sub2api",
       "replace": "desalahy/Sub2api_laffey",
       "expected_count": 1
+    },
+    {
+      "path": "frontend/package.json",
+      "find": "\"postcss\": \"^8.4.32\"",
+      "replace": "\"postcss\": \">=8.5.18\"",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/package.json",
+      "find": "\"postcss\": \"^8.5.12\"",
+      "replace": "\"postcss\": \">=8.5.18\"",
+      "expected_count": 1
     }
   ],
   "schema_version": 1
