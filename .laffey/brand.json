@@ -73,7 +73,9 @@
     "frontend/src/views/user/KeysView.vue",
     "guide/**",
     "tools/frontend-preview-mock.mjs",
-    "tools/start-frontend-preview.ps1"
+    "tools/start-frontend-preview.ps1",
+    "frontend/src/views/admin/__tests__/GroupsView.columnSettings.spec.ts",
+    "frontend/src/views/admin/__tests__/GroupsView.duplicate.spec.ts"
   ],
   "brand": {
     "default_site_name": "Laffey API",
@@ -637,6 +639,18 @@
       "path": "frontend/package.json",
       "find": "\"postcss\": \"^8.5.12\"",
       "replace": "\"postcss\": \">=8.5.18\"",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/views/admin/__tests__/GroupsView.columnSettings.spec.ts",
+      "find": "      getAll: getAllGroups,\n",
+      "replace": "      getAll: getAllGroups,\n      getLiveCapability: vi.fn(),\n",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/views/admin/__tests__/GroupsView.duplicate.spec.ts",
+      "find": "      getAll: vi.fn(),\n",
+      "replace": "      getAll: vi.fn(),\n      getLiveCapability: vi.fn(),\n",
       "expected_count": 1
     }
   ],
