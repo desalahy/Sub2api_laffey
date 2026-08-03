@@ -1,9 +1,9 @@
 {
-  "base_commit": "f11d86acea1f105f82b7e1f9a78c25ed0fa41e9e",
+  "base_commit": "df8bc24761dab86ee2a902f7601aaa708791a3ab",
   "schema_version": 1,
   "upstream": {
-    "commit": "dc893dd0b8eab41df5be595ae9fcd1aa74a062b8",
+    "commit": "c043c24774228ba891ddf90d783aa6dc7d0855b5",
     "repository": "Wei-Shaw/sub2api",
-    "tag": "v0.1.166"
+    "tag": "v0.1.170"
   }
 }
