@@ -1,10 +1,10 @@
 # Laffey Upstream Sync Report
 
 - Upstream repository: `Wei-Shaw/sub2api`
-- Upstream tag: `v0.1.170`
-- Upstream commit: `c043c24774228ba891ddf90d783aa6dc7d0855b5`
-- Base commit: `df8bc24761dab86ee2a902f7601aaa708791a3ab`
-- Allowlisted brand differences: `146`
+- Upstream tag: `v0.1.173`
+- Upstream commit: `29009f0b2ea14edf3b11ae2564fb617ff91a03b4`
+- Base commit: `5fb7d43935df62d3c42fd47e3686a624b17bd168`
+- Allowlisted brand differences: `145`
 
 ## Brand Difference Paths
 
@@ -114,7 +114,6 @@
 - `frontend/public/assets/laffey/chibi/laffey-idol-chibi.png`
 - `frontend/public/assets/laffey/chibi/laffey-snack-chibi.png`
 - `frontend/public/logo.png`
-- `frontend/src/api/__tests__/admin.system.rollback.spec.ts`
 - `frontend/src/components/layout/AppSidebar.vue`
 - `frontend/src/components/layout/AuthLayout.vue`
 - `frontend/src/constants/branding.ts`
