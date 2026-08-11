@@ -52,7 +52,6 @@
     "frontend/pnpm-lock.yaml",
     "frontend/public/assets/laffey/**",
     "frontend/public/logo.png",
-    "frontend/src/api/__tests__/admin.system.rollback.spec.ts",
     "frontend/src/components/layout/AppSidebar.vue",
     "frontend/src/components/layout/AuthLayout.vue",
     "frontend/src/constants/branding.ts",
@@ -298,18 +297,6 @@
       "find": "https://github.com/Wei-Shaw/sub2api/blob/main",
       "replace": "https://github.com/desalahy/Sub2api_laffey/blob/master",
       "expected_count": 2
-    },
-    {
-      "path": "frontend/src/api/__tests__/admin.system.rollback.spec.ts",
-      "find": "expect(post).toHaveBeenCalledWith('/admin/system/rollback', { version: '0.1.146' })",
-      "replace": "expect(post).toHaveBeenCalledWith('/admin/system/rollback', { version: '0.1.146' }, { timeout: 900000 })",
-      "expected_count": 1
-    },
-    {
-      "path": "frontend/src/api/__tests__/admin.system.rollback.spec.ts",
-      "find": "expect(post).toHaveBeenCalledWith('/admin/system/rollback', undefined)",
-      "replace": "expect(post).toHaveBeenCalledWith('/admin/system/rollback', undefined, { timeout: 900000 })",
-      "expected_count": 1
     },
     {
       "path": "frontend/src/views/auth/EmailVerifyView.vue",
