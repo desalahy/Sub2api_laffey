@@ -1,16 +1,17 @@
 # Laffey Upstream Sync Report
 
 - Upstream repository: `Wei-Shaw/sub2api`
-- Upstream tag: `v0.1.173`
-- Upstream commit: `29009f0b2ea14edf3b11ae2564fb617ff91a03b4`
-- Base commit: `5fb7d43935df62d3c42fd47e3686a624b17bd168`
-- Allowlisted brand differences: `145`
+- Upstream tag: `v0.1.178`
+- Upstream commit: `e0c48a19ed794a565e3858662520afe0a1f9f0ba`
+- Base commit: `593f9cef6338e5d3d958a400be32ee310ca23872`
+- Allowlisted brand differences: `146`
 
 ## Brand Difference Paths
 
 - `.github/workflows/backend-ci.yml`
 - `.github/workflows/cla.yml`
 - `.github/workflows/release.yml`
+- `.github/workflows/security-scan.yml`
 - `.github/workflows/sync-upstream.yml`
 - `.goreleaser.simple.yaml`
 - `.goreleaser.yaml`
