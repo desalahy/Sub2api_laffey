@@ -452,7 +452,7 @@
       "path": "deploy/README.md",
       "find": "Sub2API",
       "replace": "Laffey API",
-      "expected_count": 10
+      "expected_count": 11
     },
     {
       "path": "deploy/README.md",
@@ -464,7 +464,7 @@
       "path": "deploy/APPLE_CONTAINER.md",
       "find": "Sub2API",
       "replace": "Laffey API",
-      "expected_count": 9
+      "expected_count": 10
     },
     {
       "path": "deploy/APPLE_CONTAINER.md",
@@ -488,7 +488,7 @@
       "path": "deploy/apple-container.sh",
       "find": "Sub2API",
       "replace": "Laffey API",
-      "expected_count": 12
+      "expected_count": 13
     },
     {
       "path": "deploy/apple-container.sh",
