@@ -1,9 +1,9 @@
 # Laffey Upstream Sync Report
 
 - Upstream repository: `Wei-Shaw/sub2api`
-- Upstream tag: `v0.2.8`
-- Upstream commit: `fd80b08c90b55edcad5b00171b53f08721d30da1`
-- Base commit: `cc25a0627e23bc9be6d63c6174695e94be7b802f`
+- Upstream tag: `v0.2.9`
+- Upstream commit: `4c00df2e0183e2c70b7fa8ba45914205e36aad0c`
+- Base commit: `f1f019db5a61ec73a6322f45bb8be6c52a881dc0`
 - Allowlisted brand differences: `146`
 
 ## Brand Difference Paths
