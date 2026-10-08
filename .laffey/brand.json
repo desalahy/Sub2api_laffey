@@ -74,7 +74,9 @@
     "tools/frontend-preview-mock.mjs",
     "tools/start-frontend-preview.ps1",
     "frontend/src/views/admin/__tests__/GroupsView.columnSettings.spec.ts",
-    "frontend/src/views/admin/__tests__/GroupsView.duplicate.spec.ts"
+    "frontend/src/views/admin/__tests__/GroupsView.duplicate.spec.ts",
+    "frontend/src/api/__tests__/settings.authSourceDefaults.spec.ts",
+    "frontend/src/components/keys/__tests__/UseKeyModal.spec.ts"
   ],
   "brand": {
     "default_site_name": "Laffey API",
@@ -639,6 +641,30 @@
       "find": "      getAll: vi.fn(),\n",
       "replace": "      getAll: vi.fn(),\n      getLiveCapability: vi.fn(() => Promise.resolve({ supported: false })),\n",
       "expected_count": 1
+    },
+    {
+      "path": "frontend/src/api/__tests__/settings.authSourceDefaults.spec.ts",
+      "find": "  grok: { daily: null, weekly: null, monthly: null },\n}",
+      "replace": "  grok: { daily: null, weekly: null, monthly: null },\n  typesafe: { daily: null, weekly: null, monthly: null },\n}",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/api/__tests__/settings.authSourceDefaults.spec.ts",
+      "find": "toHaveLength(5)",
+      "replace": "toHaveLength(6)",
+      "expected_count": 2
+    },
+    {
+      "path": "frontend/src/components/keys/__tests__/UseKeyModal.spec.ts",
+      "find": "[features]\\ngoals = true",
+      "replace": "[features]\\napi_key_model_discovery = true\\ngoals = true",
+      "expected_count": 1
+    },
+    {
+      "path": "frontend/src/components/keys/__tests__/UseKeyModal.spec.ts",
+      "find": "[features]\\nresponses_websockets_v2 = true\\ngoals = true",
+      "replace": "[features]\\napi_key_model_discovery = true\\nresponses_websockets_v2 = true\\ngoals = true",
+      "expected_count": 2
     }
   ],
   "schema_version": 1
