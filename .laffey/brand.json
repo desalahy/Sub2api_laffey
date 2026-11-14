@@ -391,6 +391,36 @@
       "expected_count": 1
     },
     {
+      "path": ".goreleaser.simple.yaml",
+      "find": "  prerelease: auto",
+      "replace": "  prerelease: false",
+      "expected_count": 1
+    },
+    {
+      "path": ".goreleaser.simple.yaml",
+      "find_file": "transforms/simple_release_archives.before",
+      "replace_file": "transforms/simple_release_archives.after",
+      "expected_count": 1
+    },
+    {
+      "path": ".goreleaser.simple.yaml",
+      "find": "  # 跳过上传二进制包\n  skip_upload: true",
+      "replace": "  # The updater downloads this archive from GitHub release assets.\n  skip_upload: false",
+      "expected_count": 1
+    },
+    {
+      "path": ".goreleaser.simple.yaml",
+      "find": "# 简化版 GoReleaser 配置 - 仅发布 x86_64 GHCR 镜像",
+      "replace": "# 简化版 GoReleaser 配置 - 发布 x86_64 GHCR 镜像及站内更新包",
+      "expected_count": 1
+    },
+    {
+      "path": ".goreleaser.simple.yaml",
+      "find": "    > ⚡ Simple Release: 仅包含 x86_64 GHCR 镜像",
+      "replace": "    > ⚡ Simple Release: x86_64 GHCR 镜像及站内更新包",
+      "expected_count": 1
+    },
+    {
       "path": "Dockerfile",
       "find": "Sub2API",
       "replace": "Laffey API",

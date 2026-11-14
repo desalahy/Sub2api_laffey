@@ -1,0 +1,6 @@
+# 跳过 archives
+archives: []
+
+# 跳过 checksum
+checksum:
+  disable: true

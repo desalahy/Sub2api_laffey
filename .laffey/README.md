@@ -91,3 +91,9 @@ may create the requested tag when absent. An existing tag is reusable only
 when it points to current `master`, and `vX.Y.Z` must equal the upstream tag in
 `upstream.lock.json`. The workflow publishes artifacts and images; it does not
 deploy a server.
+
+Both release modes publish stable GitHub releases. The `-laffey.N` suffix is the
+fork revision, not a prerelease channel: the built-in updater uses GitHub's
+`releases/latest` endpoint, which excludes prereleases. Simple Release includes
+the Linux amd64 archive and `checksums.txt` as well as the GHCR image so the
+site's updater can download the new binary.
