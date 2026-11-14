@@ -1,25 +1,48 @@
+	isOAuth bool,
+) (*ClaudeUsage, error) {
+	respBody, err := ReadUpstreamResponseBody(resp.Body, s.cfg, c, openAITooLargeError)
+	if err != nil {
+		return nil, err
 	}
-
-	anthState := apicompat.NewAnthropicEventToResponsesState()
-	anthState.Model = originalModel
-	ccState := apicompat.NewResponsesEventToChatState()
-	ccState.Model = originalModel
-	ccState.IncludeUsage = includeUsage
-
-	var usage ClaudeUsage
-	var firstTokenMs *int
-	firstChunk := true
-	finishReason := ""
-	sawDone := false
-	clientDisconnect := false
-	streamResult := func() *geminiStreamResult {
-		return &geminiStreamResult{usage: &usage, firstTokenMs: firstTokenMs, clientDisconnect: clientDisconnect, finished: finishReason != ""}
-	}
-
-	writeChatChunk := func(chunk apicompat.ChatCompletionsChunk) bool {
-		sse, err := apicompat.ChatChunkToSSE(chunk)
-		if err != nil {
-			return false
+	if isOAuth {
+		if unwrappedBody, uwErr := unwrapGeminiResponse(respBody); uwErr == nil {
+			respBody = unwrappedBody
 		}
-		if _, err := io.WriteString(c.Writer, sse); err != nil {
-			clientDisconnect = true
+	}
+
+	geminiResp, parseErr := decodeGeminiObjectLaffey(respBody)
+	if parseErr != nil {
+		return nil, s.writeChatCompletionsError(c, http.StatusBadGateway, "upstream_error", "Failed to parse upstream response")
+	}
+
+	chatResp, usage, err := geminiResponseToChatCompletions(geminiResp, originalModel, respBody, nil)
+	if err != nil {
+		return nil, s.writeChatCompletionsError(c, http.StatusBadGateway, "upstream_error", "Failed to parse upstream response")
+	}
+
+	responseheaders.WriteFilteredHeaders(c.Writer.Header(), resp.Header, s.responseHeaderFilter)
+	c.JSON(http.StatusOK, chatResp)
+	return usage, nil
+}
+
+func geminiResponseToChatCompletions(
+	geminiResp map[string]any,
+	originalModel string,
+	rawData []byte,
+	usageOverride *ClaudeUsage,
+) (*apicompat.ChatCompletionsResponse, *ClaudeUsage, error) {
+	if _, hasError := geminiResp["error"]; hasError {
+		return nil, nil, errors.New("gemini upstream response error")
+	}
+	claudeRespMap, usage := convertGeminiToClaudeMessage(geminiResp, originalModel, rawData, true)
+	if usageOverride != nil && (usageOverride.InputTokens > 0 || usageOverride.OutputTokens > 0 || usageOverride.CacheReadInputTokens > 0) {
+		usage = usageOverride
+		if usageMap, ok := claudeRespMap["usage"].(map[string]any); ok {
+			usageMap["input_tokens"] = usage.InputTokens
+			usageMap["output_tokens"] = usage.OutputTokens
+			usageMap["cache_read_input_tokens"] = usage.CacheReadInputTokens
+		}
+	}
+
+	claudeBytes, err := json.Marshal(claudeRespMap)
+	if err != nil {

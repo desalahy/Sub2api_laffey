@@ -84,7 +84,9 @@
     "backend/internal/service/gemini_tool_calls_laffey_test.go",
     "backend/internal/service/gemini_tool_stream_laffey_test.go",
     "docs/superpowers/specs/2026-11-14-gemini-tool-call-compat-design.md",
-    "docs/superpowers/plans/2026-11-14-gemini-tool-call-compat.md"
+    "docs/superpowers/plans/2026-11-14-gemini-tool-call-compat.md",
+    "backend/internal/handler/gateway_handler.go",
+    "backend/internal/handler/gemini_stream_usage_laffey_test.go"
   ],
   "brand": {
     "default_site_name": "Laffey API",
@@ -683,6 +685,12 @@
       "expected_count": 1
     },
     {
+      "path": "backend/internal/service/gemini_chat_completions_compat_service.go",
+      "find_file": "transforms/gemini_gemini_chat_completions_compat_service_07.before",
+      "replace_file": "transforms/gemini_gemini_chat_completions_compat_service_07.after",
+      "expected_count": 1
+    },
+    {
       "path": "backend/internal/service/gemini_messages_compat_service.go",
       "find_file": "transforms/gemini_gemini_messages_compat_service_00.before",
       "replace_file": "transforms/gemini_gemini_messages_compat_service_00.after",
@@ -725,9 +733,27 @@
       "expected_count": 1
     },
     {
+      "path": "backend/internal/service/gemini_messages_compat_service.go",
+      "find_file": "transforms/gemini_gemini_messages_compat_service_07.before",
+      "replace_file": "transforms/gemini_gemini_messages_compat_service_07.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/gemini_messages_compat_service.go",
+      "find_file": "transforms/gemini_gemini_messages_compat_service_08.before",
+      "replace_file": "transforms/gemini_gemini_messages_compat_service_08.after",
+      "expected_count": 1
+    },
+    {
       "path": "backend/internal/service/gemini_native_response_signal_test.go",
       "find_file": "transforms/gemini_gemini_native_response_signal_test_00.before",
       "replace_file": "transforms/gemini_gemini_native_response_signal_test_00.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/handler/gateway_handler.go",
+      "find_file": "transforms/gemini_gateway_handler_00.before",
+      "replace_file": "transforms/gemini_gateway_handler_00.after",
       "expected_count": 1
     }
   ],

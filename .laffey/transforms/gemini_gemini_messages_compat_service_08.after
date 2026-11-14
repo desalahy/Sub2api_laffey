@@ -1,0 +1,25 @@
+								"id":    "toolu_" + randomHex(8),
+								"name":  name,
+								"input": args,
+							})
+						}
+					}
+				}
+			}
+		}
+	}
+
+	stopReason := mapGeminiFinishReasonToClaudeStopReason(extractGeminiFinishReason(geminiResp))
+	if sawToolUse && stopReason != "max_tokens" {
+		stopReason = "tool_use"
+	}
+
+	resp := map[string]any{
+		"id":            generateAnthropicMsgID(),
+		"type":          "message",
+		"role":          "assistant",
+		"model":         originalModel,
+		"content":       contentBlocks,
+		"stop_reason":   stopReason,
+		"stop_sequence": nil,
+		"usage": map[string]any{

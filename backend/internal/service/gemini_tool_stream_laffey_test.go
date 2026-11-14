@@ -78,7 +78,7 @@ func geminiLaffeySSE(parts ...string) string {
 	for _, part := range parts {
 		fmt.Fprintf(&body, "data: {\"candidates\":[{\"content\":{\"parts\":[%s]}}]}\n\n", part)
 	}
-	body.WriteString("data: {\"candidates\":[{\"finishReason\":\"STOP\"}],\"usageMetadata\":{\"promptTokenCount\":7,\"candidatesTokenCount\":3}}\n\n")
+	_, _ = body.WriteString("data: {\"candidates\":[{\"finishReason\":\"STOP\"}],\"usageMetadata\":{\"promptTokenCount\":7,\"candidatesTokenCount\":3}}\n\n")
 	return body.String()
 }
 
@@ -246,15 +246,23 @@ func TestGeminiToolStreamLaffey_ResultTurn(t *testing.T) {
 			var request map[string]any
 			require.NoError(t, json.Unmarshal(sent, &request))
 			var gotCalls, gotResults []string
-			for _, content := range request["contents"].([]any) {
-				for _, p := range content.(map[string]any)["parts"].([]any) {
-					part := p.(map[string]any)
+			contents, ok := request["contents"].([]any)
+			require.True(t, ok)
+			for _, content := range contents {
+				parts, ok := laffeyTestObject(t, content)["parts"].([]any)
+				require.True(t, ok)
+				for _, p := range parts {
+					part := laffeyTestObject(t, p)
 					if call, ok := part["functionCall"].(map[string]any); ok {
-						gotCalls = append(gotCalls, call["args"].(map[string]any)["path"].(string))
+						path, ok := laffeyTestObject(t, call["args"])["path"].(string)
+						require.True(t, ok)
+						gotCalls = append(gotCalls, path)
 					}
 					if result, ok := part["functionResponse"].(map[string]any); ok {
 						require.Equal(t, "Read", result["name"])
-						gotResults = append(gotResults, result["response"].(map[string]any)["content"].(string))
+						text, ok := laffeyTestObject(t, result["response"])["content"].(string)
+						require.True(t, ok)
+						gotResults = append(gotResults, text)
 					}
 				}
 			}
@@ -287,5 +295,33 @@ func TestGeminiToolStreamLaffey_ProtocolErrorRetainsUsage(t *testing.T) {
 		require.NotNil(t, result, "%s discarded billable usage", protocol)
 		require.Equal(t, 7, result.Usage.InputTokens)
 		require.Equal(t, 3, result.Usage.OutputTokens)
+	}
+}
+
+func TestGeminiToolStreamLaffey_ErrorFrameUsageAndImageCharge(t *testing.T) {
+	for _, model := range []string{"gemini-4-hydrogen-high", "gemini-3-pro-image"} {
+		for _, protocol := range []string{"chat", "messages"} {
+			input := `data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Read","args":[]}}]}}],"usageMetadata":{"promptTokenCount":7,"candidatesTokenCount":3}}` + "\n\n"
+			upstream := &geminiCompatHTTPUpstreamStub{response: &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(input))}}
+			svc := &GeminiMessagesCompatService{cfg: &config.Config{}, httpUpstream: upstream}
+			account := &Account{ID: 101, Platform: PlatformGemini, Type: AccountTypeAPIKey, Credentials: map[string]any{"api_key": "test-key"}}
+			body := []byte(fmt.Sprintf(`{"model":%q,"stream":true,"messages":[{"role":"user","content":"read"}]}`, model))
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+			c.Set("gemini_image_generation_allowed", true)
+			var result *ForwardResult
+			var err error
+			if protocol == "chat" {
+				result, err = svc.ForwardAsChatCompletions(context.Background(), c, account, body)
+			} else {
+				result, err = svc.Forward(context.Background(), c, account, body)
+			}
+			require.Error(t, err)
+			require.NotNil(t, result, "%s/%s", protocol, model)
+			require.Equal(t, 7, result.Usage.InputTokens, "%s/%s", protocol, model)
+			require.Equal(t, 3, result.Usage.OutputTokens)
+			require.Zero(t, result.ImageCount, "failed conversion must not manufacture image charges")
+		}
 	}
 }

@@ -300,6 +300,9 @@ func (s *GeminiMessagesCompatService) forwardClaudeBodyAsChatCompletions(
 	if clientDisconnect && !streamFinished {
 		imageCount = 0
 	}
+	if streamErr != nil {
+		imageCount = 0
+	}
 
 	return &ForwardResult{
 		RequestID:        requestID,
@@ -472,8 +475,8 @@ func (s *GeminiMessagesCompatService) handleChatCompletionsNonStreamingResponseF
 		}
 	}
 
-	var geminiResp map[string]any
-	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
+	geminiResp, parseErr := decodeGeminiObjectLaffey(respBody)
+	if parseErr != nil {
 		return nil, s.writeChatCompletionsError(c, http.StatusBadGateway, "upstream_error", "Failed to parse upstream response")
 	}
 
@@ -493,6 +496,9 @@ func geminiResponseToChatCompletions(
 	rawData []byte,
 	usageOverride *ClaudeUsage,
 ) (*apicompat.ChatCompletionsResponse, *ClaudeUsage, error) {
+	if _, hasError := geminiResp["error"]; hasError {
+		return nil, nil, errors.New("gemini upstream response error")
+	}
 	claudeRespMap, usage := convertGeminiToClaudeMessage(geminiResp, originalModel, rawData, true)
 	if usageOverride != nil && (usageOverride.InputTokens > 0 || usageOverride.OutputTokens > 0 || usageOverride.CacheReadInputTokens > 0) {
 		usage = usageOverride
@@ -656,7 +662,7 @@ func (s *GeminiMessagesCompatService) handleChatCompletionsStreamingResponseFrom
 						return toolStreamError(errors.New("invalid Gemini stream JSON"))
 					}
 					if _, hasError := geminiResp["error"]; hasError {
-						return toolStreamError(errors.New("Gemini upstream stream error"))
+						return toolStreamError(errors.New("gemini upstream stream error"))
 					}
 					if parseErr == nil {
 						if firstChunk {
@@ -837,7 +843,7 @@ func (s *GeminiMessagesCompatService) handleChatCompletionsStreamingResponseFrom
 		return toolStreamError(err)
 	}
 	if sawToolUse && finishReason == "" && !sawDone {
-		return toolStreamError(errors.New("Gemini tool stream ended without a terminal event"))
+		return toolStreamError(errors.New("gemini tool stream ended without a terminal event"))
 	}
 	if closeOpenBlock() {
 		return streamResult(), nil

@@ -65,7 +65,7 @@ func TestGeminiToolCallsLaffey_FragmentsAndOrder(t *testing.T) {
 	if len(got) != 3 {
 		t.Fatalf("want 3 ordered parts, got %v", got)
 	}
-	if got[0]["functionCall"].(map[string]any)["id"] != "a" || got[1]["text"] != "after a" || got[2]["functionCall"].(map[string]any)["id"] != "b" {
+	if laffeyTestObject(t, got[0]["functionCall"])["id"] != "a" || got[1]["text"] != "after a" || laffeyTestObject(t, got[2]["functionCall"])["id"] != "b" {
 		t.Fatalf("wrong order %v", got)
 	}
 	if err := s.Finish(); err != nil {
@@ -123,7 +123,7 @@ func TestGeminiToolCallsLaffey_CumulativeAndEscapes(t *testing.T) {
 			t.Fatal(err)
 		}
 		if len(out) > 0 {
-			obj := out[0]["functionCall"].(map[string]any)["args"].(map[string]any)
+			obj := laffeyTestObject(t, laffeyTestObject(t, out[0]["functionCall"])["args"])
 			if obj["number"] != json.Number("9007199254740993") || obj["text"] != "}{\"你好" {
 				t.Fatalf("corrupt args: %v", obj)
 			}
@@ -157,5 +157,48 @@ func BenchmarkGeminiToolCallsLaffey(b *testing.B) {
 				}
 			}
 		})
+	}
+}
+
+func TestGeminiToolCallsLaffey_PrefixIsValidAppend(t *testing.T) {
+	s := newGeminiToolPartsLaffey(4096)
+	var out []map[string]any
+	for _, fragment := range []string{`{"x":"`, `{`, `"}`} {
+		ready, err := s.Push(map[string]any{"functionCall": map[string]any{"id": "a", "name": "Read", "args": fragment}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, ready...)
+	}
+	if len(out) != 1 || laffeyTestObject(t, laffeyTestObject(t, out[0]["functionCall"])["args"])["x"] != "{" {
+		t.Fatalf("corrupted prefix fragment: %v", out)
+	}
+}
+
+func laffeyTestObject(t *testing.T, value any) map[string]any {
+	t.Helper()
+	object, ok := value.(map[string]any)
+	if !ok {
+		t.Fatalf("expected object, got %T", value)
+	}
+	return object
+}
+
+func TestGeminiToolCallsLaffey_AnonymousCompleteBehindFragment(t *testing.T) {
+	s := newGeminiToolPartsLaffey(4096)
+	var out []map[string]any
+	for _, input := range []string{
+		`{"functionCall":{"name":"Read","args":"{\"path\":\""}}`,
+		`{"functionCall":{"name":"Stat","args":{"path":"b"}}}`,
+		`{"functionCall":{"name":"Read","args":"a\"}"}}`,
+	} {
+		ready, err := s.Push(laffeyDecodePart(t, input))
+		if err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, ready...)
+	}
+	if len(out) != 2 {
+		t.Fatalf("lost anonymous calls: %v", out)
 	}
 }

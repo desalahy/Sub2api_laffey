@@ -1,25 +1,26 @@
-		UpstreamModel:                 mappedModel,
-		UpstreamResponseModel:         observedUpstreamResponseModel(c),
-		UpstreamResponseModelConflict: observedUpstreamResponseModelConflict(c),
-		Stream:                        req.Stream,
-		Duration:                      time.Since(startTime),
-		FirstTokenMs:                  firstTokenMs,
-		ReasoningEffort:               extractGeminiReasoningEffortFromBody(geminiReq),
-		ClientDisconnect:              clientDisconnect,
-		ImageEndpoint:                 imageCount > 0,
-		ImageCount:                    imageCount,
-		ImageSize:                     imageSize,
-		ImageInputSize:                imageInputSize,
-	}, streamErr
-}
 
-func isGeminiSignatureRelatedError(respBody []byte) bool {
-	msg := strings.ToLower(strings.TrimSpace(extractAntigravityErrorMessage(respBody)))
-	if msg == "" {
-		msg = strings.ToLower(string(respBody))
+	unwrappedBody, err := unwrapGeminiResponse(body)
+	if err != nil {
+		return nil, s.writeClaudeError(c, http.StatusBadGateway, "upstream_error", "Failed to parse upstream response")
 	}
-	return strings.Contains(msg, "thought_signature") || strings.Contains(msg, "signature")
+	observer := upstreamResponseModelObserverFromContext(c)
+	if observer == nil {
+		observer = beginUpstreamResponseModelObservation(c)
+	}
+	observer.ObserveGemini(unwrappedBody)
+	observeGeminiImageOutputs(c, unwrappedBody)
+
+	geminiResp, parseErr := decodeGeminiObjectLaffey(unwrappedBody)
+	if parseErr != nil {
+		return nil, s.writeClaudeError(c, http.StatusBadGateway, "upstream_error", "Failed to parse upstream response")
+	}
+
+	claudeResp, usage := convertGeminiToClaudeMessage(geminiResp, originalModel, unwrappedBody, false)
+	c.JSON(http.StatusOK, claudeResp)
+
+	return usage, nil
 }
 
-func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.Context, account *Account, originalModel string, action string, stream bool, body []byte) (*ForwardResult, error) {
-	beginUpstreamResponseModelObservation(c)
+func (s *GeminiMessagesCompatService) handleStreamingResponse(c *gin.Context, resp *http.Response, startTime time.Time, originalModel string) (*geminiStreamResult, error) {
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")

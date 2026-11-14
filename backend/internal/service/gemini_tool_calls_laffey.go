@@ -44,7 +44,7 @@ func (s *geminiToolPartsLaffey) Push(part map[string]any) ([]map[string]any, err
 		return nil, err
 	}
 	if int64(len(raw)) > s.limit-s.bytes {
-		return nil, errors.New("Gemini tool stream exceeds response byte limit")
+		return nil, errors.New("gemini tool stream exceeds response byte limit")
 	}
 	s.bytes += int64(len(raw))
 	owned, err := decodeGeminiObjectLaffey(raw)
@@ -61,29 +61,36 @@ func (s *geminiToolPartsLaffey) Push(part map[string]any) ([]map[string]any, err
 		return nil, errors.New("invalid Gemini functionCall")
 	}
 	if _, ok := fc["partialArgs"]; ok {
-		return nil, errors.New("Gemini partialArgs streaming is not supported")
+		return nil, errors.New("gemini partialArgs streaming is not supported")
 	}
 	if continued, _ := fc["willContinue"].(bool); continued {
-		return nil, errors.New("Gemini willContinue streaming is not supported")
+		return nil, errors.New("gemini willContinue streaming is not supported")
 	}
 	id, _ := fc["id"].(string)
 	name, _ := fc["name"].(string)
 	entry := s.byID[id]
 	if id == "" {
 		entry = s.anonymous
+		// A complete ID-less part is a new call, not a fragment of the
+		// unfinished anonymous call (which keeps its position in the queue).
+		if _, completeObject := fc["args"].(map[string]any); completeObject {
+			entry = nil
+		} else if text, ok := fc["args"].(string); ok && json.Valid([]byte(text)) {
+			entry = nil
+		}
 	}
 	if entry != nil && name != "" && entry.name != name {
 		return nil, errors.New("conflicting Gemini tool name for call ID")
 	}
 	if entry == nil {
 		if strings.TrimSpace(name) == "" {
-			return nil, errors.New("Gemini functionCall is missing name")
+			return nil, errors.New("gemini functionCall is missing name")
 		}
 		entry = &geminiToolPartLaffey{part: owned, name: name}
 		s.queue = append(s.queue, entry)
 		if id != "" {
 			s.byID[id] = entry
-		} else {
+		} else if s.anonymous == nil {
 			s.anonymous = entry
 		}
 	}
@@ -145,7 +152,7 @@ func (p *geminiToolPartLaffey) appendArgs(args any) error {
 	case string:
 		text = strings.TrimSuffix(value, "\x00")
 	default:
-		return errors.New("Gemini tool arguments must be a JSON object")
+		return errors.New("gemini tool arguments must be a JSON object")
 	}
 	if p.complete {
 		obj, err := decodeGeminiObjectLaffey([]byte(text))
@@ -162,13 +169,11 @@ func (p *geminiToolPartLaffey) appendArgs(args any) error {
 	delta := text
 	if strings.HasPrefix(text, seen) {
 		delta = text[len(seen):]
-	} else if strings.HasPrefix(seen, text) {
-		return nil
 	}
 	if err := p.scan.Push(delta); err != nil {
 		return err
 	}
-	p.arguments.WriteString(delta)
+	_, _ = p.arguments.WriteString(delta)
 	if !p.scan.done {
 		return nil
 	}
@@ -178,7 +183,11 @@ func (p *geminiToolPartLaffey) appendArgs(args any) error {
 	}
 	raw, _ := json.Marshal(obj)
 	p.canonical = string(raw)
-	p.part["functionCall"].(map[string]any)["args"] = obj
+	call, ok := p.part["functionCall"].(map[string]any)
+	if !ok {
+		return errors.New("invalid normalized Gemini functionCall")
+	}
+	call["args"] = obj
 	p.complete = true
 	p.arguments.Reset()
 	return nil
@@ -215,7 +224,7 @@ func (s *geminiJSONScanLaffey) Push(text string) error {
 		}
 		if !s.started {
 			if c != '{' {
-				return errors.New("Gemini tool arguments must start with an object")
+				return errors.New("gemini tool arguments must start with an object")
 			}
 			s.started = true
 		}

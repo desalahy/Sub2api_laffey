@@ -77,7 +77,10 @@
 			return toolStreamError(errors.New("invalid Gemini stream JSON"))
 		}
 		if _, hasError := geminiResp["error"]; hasError {
-			return toolStreamError(errors.New("Gemini upstream stream error"))
+			return toolStreamError(errors.New("gemini upstream stream error"))
+		}
+		if u := extractGeminiUsage(unwrappedBytes); u != nil {
+			usage = *u
 		}
 
 		if fr := extractGeminiFinishReason(geminiResp); fr != "" {

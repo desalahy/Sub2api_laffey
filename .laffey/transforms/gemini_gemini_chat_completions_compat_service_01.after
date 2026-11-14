@@ -1,3 +1,22 @@
+	}
+
+	imageCount := 0
+	imageInputSize := s.extractImageInputSize(claudeBody)
+	imageSize := normalizeOpenAIImageSizeTier(imageInputSize)
+	if isImageGenerationModel(originalModel) {
+		imageCount = 1
+	}
+	// 客户端在收到结束分片前断开时只计已送达的图片：Chat 流不向客户端转发图片。
+	if clientDisconnect && !streamFinished {
+		imageCount = 0
+	}
+	if streamErr != nil {
+		imageCount = 0
+	}
+
+	return &ForwardResult{
+		RequestID:        requestID,
+		UpstreamHeaders:  resp.Header,
 		Usage:            *usage,
 		Model:            originalModel,
 		UpstreamModel:    mappedModel,

@@ -20,6 +20,7 @@ OWNED = [
     "backend/internal/service/gemini_tool_stream_laffey_test.go",
     "backend/internal/service/gemini_response_accumulator_laffey.go",
     "backend/internal/service/gemini_response_accumulator_laffey_test.go",
+    "backend/internal/handler/gemini_stream_usage_laffey_test.go",
 ]
 
 

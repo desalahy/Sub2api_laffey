@@ -31,6 +31,7 @@ func collectGeminiSSEObserved(cfg *config.Config, body io.Reader, isOAuth bool, 
 				switch payload {
 				case "", "[DONE]":
 					if payload == "[DONE]" {
+						accumulator.sawDone = true
 						return finish()
 					}
 				default:
@@ -51,6 +52,9 @@ func collectGeminiSSEObserved(cfg *config.Config, body io.Reader, isOAuth bool, 
 						if observe != nil {
 							observe(rawBytes)
 						}
+					}
+					if parsed == nil {
+						return nil, usage, stats, errors.New("invalid Gemini stream JSON")
 					}
 					if parsed != nil {
 						if u := extractGeminiUsage(rawBytes); u != nil {
@@ -84,3 +88,14 @@ func pickGeminiCollectResult(last map[string]any, lastWithParts map[string]any) 
 	}
 	return map[string]any{}
 }
+
+type geminiNativeStreamResult struct {
+	usage            *ClaudeUsage
+	firstTokenMs     *int
+	clientDisconnect bool // 客户端在流式传输中途断开，结果为断开前已收集的部分
+	finished         bool // 断开前已收到上游 finishReason
+}
+
+func isGeminiInsufficientScope(headers http.Header, body []byte) bool {
+	if strings.Contains(strings.ToLower(headers.Get("Www-Authenticate")), "insufficient_scope") {
+		return true

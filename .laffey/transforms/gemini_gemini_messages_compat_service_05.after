@@ -31,7 +31,7 @@
 		return toolStreamError(err)
 	}
 	if sawToolUse && finishReason == "" && !sawDone {
-		return toolStreamError(errors.New("Gemini tool stream ended without a terminal event"))
+		return toolStreamError(errors.New("gemini tool stream ended without a terminal event"))
 	}
 	if openBlockIndex >= 0 {
 		writeSSE(c.Writer, "content_block_stop", map[string]any{
