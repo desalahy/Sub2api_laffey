@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       simple_release:
-        description: "Build only the linux/amd64 GHCR image and skip binary archives"
+        description: "Build the linux/amd64 GHCR image and updater archive only"
         required: false
         type: boolean
         default: false

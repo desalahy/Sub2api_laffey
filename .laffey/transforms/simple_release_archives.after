@@ -1,0 +1,13 @@
+# Linux amd64 archive is required by the built-in updater.
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE*
+      - README*
+      - deploy/*
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
