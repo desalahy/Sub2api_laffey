@@ -1,0 +1,98 @@
+		},
+	}) {
+		return streamResult(), nil
+	}
+
+	sawToolUse := false
+	nextBlockIndex := 0
+	openBlockIndex := -1
+	openBlockType := ""
+	var seenText geminiTextDelta
+	var seenThought geminiTextDelta
+	openToolIndex := -1
+	var seenToolJSON geminiTextDelta
+	toolParts := newGeminiToolPartsLaffey(resolveUpstreamResponseReadLimit(s.cfg))
+	toolStreamError := func(err error) (*geminiStreamResult, error) {
+		payload, _ := json.Marshal(map[string]any{"error": map[string]string{"type": "upstream_error", "message": err.Error()}})
+		_, _ = fmt.Fprintf(c.Writer, "data: %s\n\n", payload)
+		flusher.Flush()
+		result := streamResult()
+		result.finished = false
+		return result, err
+	}
+
+	closeOpenBlock := func() bool {
+		if openBlockIndex < 0 {
+			return false
+		}
+		disconnected := emitAnthropicEvent(&apicompat.AnthropicStreamEvent{Type: "content_block_stop", Index: &openBlockIndex})
+		openBlockIndex = -1
+		openBlockType = ""
+		return disconnected
+	}
+	closeOpenTool := func() bool {
+		if openToolIndex < 0 {
+			return false
+		}
+		disconnected := emitAnthropicEvent(&apicompat.AnthropicStreamEvent{Type: "content_block_stop", Index: &openToolIndex})
+		openToolIndex = -1
+		seenToolJSON.reset()
+		return disconnected
+	}
+
+	reader := newBoundedSSELineReader(resp.Body, s.cfg)
+	for {
+		line, err := reader.ReadLineString()
+		if len(line) > 0 {
+			trimmed := strings.TrimRight(line, "\r\n")
+			if strings.HasPrefix(trimmed, "data:") {
+				payload := strings.TrimSpace(strings.TrimPrefix(trimmed, "data:"))
+				if payload == "[DONE]" {
+					sawDone = true
+					break
+				}
+				if payload != "" && payload != "[DONE]" {
+					rawBytes := []byte(payload)
+					if isOAuth {
+						if innerBytes, uwErr := unwrapGeminiResponse(rawBytes); uwErr == nil {
+							rawBytes = innerBytes
+						}
+					}
+
+					geminiResp, parseErr := decodeGeminiObjectLaffey(rawBytes)
+					if parseErr != nil {
+						return toolStreamError(errors.New("invalid Gemini stream JSON"))
+					}
+					if _, hasError := geminiResp["error"]; hasError {
+						return toolStreamError(errors.New("gemini upstream stream error"))
+					}
+					if parseErr == nil {
+						if firstChunk {
+							firstChunk = false
+							ms := int(time.Since(startTime).Milliseconds())
+							firstTokenMs = &ms
+						}
+						if fr := extractGeminiFinishReason(geminiResp); fr != "" {
+							finishReason = fr
+						}
+						if u := extractGeminiUsage(rawBytes); u != nil {
+							usage = *u
+						}
+
+						parts, toolErr := toolParts.Frame(geminiResp)
+						if toolErr != nil {
+							return toolStreamError(toolErr)
+						}
+						for _, part := range parts {
+							if text, ok := part["text"].(string); ok && isGeminiThoughtPart(part) {
+								delta := seenThought.next(text)
+								if delta == "" {
+									continue
+								}
+								if openToolIndex >= 0 {
+									if closeOpenTool() {
+										return streamResult(), nil
+									}
+								}
+								if openBlockType != "thinking" {
+									if closeOpenBlock() {

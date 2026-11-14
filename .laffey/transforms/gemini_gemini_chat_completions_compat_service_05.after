@@ -1,0 +1,25 @@
+									openBlockIndex = idx
+									openBlockType = "thinking"
+									if emitAnthropicEvent(&apicompat.AnthropicStreamEvent{
+										Type:         "content_block_start",
+										Index:        &idx,
+										ContentBlock: &apicompat.AnthropicContentBlock{Type: "thinking"},
+									}) {
+										return streamResult(), nil
+									}
+								}
+								if emitAnthropicEvent(&apicompat.AnthropicStreamEvent{
+									Type:  "content_block_delta",
+									Index: &openBlockIndex,
+									Delta: &apicompat.AnthropicDelta{Type: "thinking_delta", Thinking: delta},
+								}) {
+									return streamResult(), nil
+								}
+								continue
+							}
+							if text, ok := part["text"].(string); ok && text != "" {
+								if openToolIndex >= 0 {
+									if closeOpenTool() {
+										return streamResult(), nil
+									}
+								}

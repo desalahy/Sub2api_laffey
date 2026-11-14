@@ -1,0 +1,179 @@
+}
+
+// geminiSSECollectStats 记录一次 SSE 聚合读到的 data 事件数，以及非 data 行的兜底内容。
+type geminiSSECollectStats struct {
+	dataEvents int
+	fallback   *geminiSSEFallbackBody
+}
+
+// collectGeminiSSEObserved 在聚合的同时把每个解包后的事件原文交给 observe（可为 nil）。
+func collectGeminiSSEObserved(cfg *config.Config, body io.Reader, isOAuth bool, observe func(rawBytes []byte)) (map[string]any, *ClaudeUsage, geminiSSECollectStats, error) {
+	reader := newBoundedSSELineReader(body, cfg)
+
+	var last map[string]any
+	var lastWithParts map[string]any
+	var collectedTextParts []string // Collect all text parts for aggregation
+	usage := &ClaudeUsage{}
+	stats := geminiSSECollectStats{fallback: &geminiSSEFallbackBody{}}
+
+	for {
+		line, err := reader.ReadLineString()
+		if len(line) > 0 {
+			trimmed := strings.TrimRight(line, "\r\n")
+			if !strings.HasPrefix(trimmed, "data:") {
+				if stats.dataEvents == 0 {
+					stats.fallback.AddLine(trimmed)
+				}
+			} else {
+				payload := strings.TrimSpace(strings.TrimPrefix(trimmed, "data:"))
+				switch payload {
+				case "", "[DONE]":
+					if payload == "[DONE]" {
+						return mergeCollectedTextParts(pickGeminiCollectResult(last, lastWithParts), collectedTextParts), usage, stats, nil
+					}
+				default:
+					var parsed map[string]any
+					var rawBytes []byte
+					if isOAuth {
+						innerBytes, err := unwrapGeminiResponse([]byte(payload))
+						if err == nil {
+							rawBytes = innerBytes
+							_ = json.Unmarshal(innerBytes, &parsed)
+						}
+					} else {
+						rawBytes = []byte(payload)
+						_ = json.Unmarshal(rawBytes, &parsed)
+					}
+					if len(rawBytes) > 0 {
+						stats.dataEvents++
+						if observe != nil {
+							observe(rawBytes)
+						}
+					}
+					if parsed != nil {
+						last = parsed
+						if u := extractGeminiUsage(rawBytes); u != nil {
+							usage = u
+						}
+						if parts := extractGeminiParts(parsed); len(parts) > 0 {
+							lastWithParts = parsed
+							// Collect text from each part for aggregation
+							for _, part := range parts {
+								if text, ok := part["text"].(string); ok && text != "" {
+									collectedTextParts = append(collectedTextParts, text)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, nil, stats, err
+		}
+	}
+
+	return mergeCollectedTextParts(pickGeminiCollectResult(last, lastWithParts), collectedTextParts), usage, stats, nil
+}
+
+func pickGeminiCollectResult(last map[string]any, lastWithParts map[string]any) map[string]any {
+	if lastWithParts != nil {
+		return lastWithParts
+	}
+	if last != nil {
+		return last
+	}
+	return map[string]any{}
+}
+
+// mergeCollectedTextParts merges all collected text chunks into the final response.
+// This fixes the issue where non-streaming responses only returned the last chunk
+// instead of the complete aggregated text.
+func mergeCollectedTextParts(response map[string]any, textParts []string) map[string]any {
+	if len(textParts) == 0 {
+		return response
+	}
+
+	// Join all text parts
+	mergedText := strings.Join(textParts, "")
+
+	// Deep copy response
+	result := make(map[string]any)
+	for k, v := range response {
+		result[k] = v
+	}
+
+	// Get or create candidates
+	candidates, ok := result["candidates"].([]any)
+	if !ok || len(candidates) == 0 {
+		candidates = []any{map[string]any{}}
+	}
+
+	// Get first candidate
+	candidate, ok := candidates[0].(map[string]any)
+	if !ok {
+		candidate = make(map[string]any)
+		candidates[0] = candidate
+	}
+
+	// Get or create content
+	content, ok := candidate["content"].(map[string]any)
+	if !ok {
+		content = map[string]any{"role": "model"}
+		candidate["content"] = content
+	}
+
+	// Get existing parts
+	existingParts, ok := content["parts"].([]any)
+	if !ok {
+		existingParts = []any{}
+	}
+
+	// Find and update first text part, or create new one
+	newParts := make([]any, 0, len(existingParts)+1)
+	textUpdated := false
+
+	for _, p := range existingParts {
+		pm, ok := p.(map[string]any)
+		if !ok {
+			newParts = append(newParts, p)
+			continue
+		}
+		if _, hasText := pm["text"]; hasText && !textUpdated {
+			// Replace with merged text
+			newPart := make(map[string]any)
+			for k, v := range pm {
+				newPart[k] = v
+			}
+			newPart["text"] = mergedText
+			newParts = append(newParts, newPart)
+			textUpdated = true
+		} else {
+			newParts = append(newParts, pm)
+		}
+	}
+
+	if !textUpdated {
+		newParts = append([]any{map[string]any{"text": mergedText}}, newParts...)
+	}
+
+	content["parts"] = newParts
+	result["candidates"] = candidates
+
+	return result
+}
+
+type geminiNativeStreamResult struct {
+	usage            *ClaudeUsage
+	firstTokenMs     *int
+	clientDisconnect bool // 客户端在流式传输中途断开，结果为断开前已收集的部分
+	finished         bool // 断开前已收到上游 finishReason
+}
+
+func isGeminiInsufficientScope(headers http.Header, body []byte) bool {
+	if strings.Contains(strings.ToLower(headers.Get("Www-Authenticate")), "insufficient_scope") {
+		return true

@@ -1,0 +1,117 @@
+				"input_tokens":  0,
+				"output_tokens": 0,
+			},
+		},
+	}
+	writeSSE(c.Writer, "message_start", messageStart)
+	flusher.Flush()
+
+	var firstTokenMs *int
+	var usage ClaudeUsage
+	finishReason := ""
+	sawToolUse := false
+	sawDone := false
+
+	nextBlockIndex := 0
+	openBlockIndex := -1
+	openBlockType := ""
+	var seenText geminiTextDelta
+	var seenThought geminiTextDelta
+	openToolIndex := -1
+	openToolID := ""
+	var seenToolJSON geminiTextDelta
+	toolParts := newGeminiToolPartsLaffey(resolveUpstreamResponseReadLimit(s.cfg))
+	toolStreamError := func(err error) (*geminiStreamResult, error) {
+		writeSSE(c.Writer, "error", map[string]any{"type": "error", "error": map[string]string{"type": "upstream_error", "message": err.Error()}})
+		flusher.Flush()
+		return &geminiStreamResult{usage: &usage, firstTokenMs: firstTokenMs}, err
+	}
+
+	reader := newBoundedSSELineReader(resp.Body, s.cfg)
+	for {
+		line, err := reader.ReadLineString()
+		if err != nil && !errors.Is(err, io.EOF) {
+			if geminiStreamAbortedWithBillableOutput(c, err, &usage) {
+				logger.LegacyPrintf("service.gemini_messages_compat", "[GeminiAPI] Client disconnected during messages stream, billing collected usage: %v", err)
+				return &geminiStreamResult{
+					usage:            &usage,
+					firstTokenMs:     firstTokenMs,
+					clientDisconnect: true,
+					finished:         finishReason != "",
+				}, nil
+			}
+			return nil, fmt.Errorf("stream read error: %w", err)
+		}
+
+		if !strings.HasPrefix(line, "data:") {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			continue
+		}
+		payload := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if payload == "[DONE]" {
+			sawDone = true
+			break
+		}
+		if payload == "" {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			continue
+		}
+
+		unwrappedBytes, err := unwrapGeminiResponse([]byte(payload))
+		if err != nil {
+			return toolStreamError(errors.New("invalid Gemini stream JSON"))
+		}
+		observer := upstreamResponseModelObserverFromContext(c)
+		if observer == nil {
+			observer = beginUpstreamResponseModelObservation(c)
+		}
+		observer.ObserveGemini(unwrappedBytes)
+		observeGeminiImageOutputs(c, unwrappedBytes)
+
+		geminiResp, parseErr := decodeGeminiObjectLaffey(unwrappedBytes)
+		if parseErr != nil {
+			return toolStreamError(errors.New("invalid Gemini stream JSON"))
+		}
+		if _, hasError := geminiResp["error"]; hasError {
+			return toolStreamError(errors.New("gemini upstream stream error"))
+		}
+		if u := extractGeminiUsage(unwrappedBytes); u != nil {
+			usage = *u
+		}
+
+		if fr := extractGeminiFinishReason(geminiResp); fr != "" {
+			finishReason = fr
+		}
+
+		parts, toolErr := toolParts.Frame(geminiResp)
+		if toolErr != nil {
+			return toolStreamError(toolErr)
+		}
+		for _, part := range parts {
+			if text, ok := part["text"].(string); ok && isGeminiThoughtPart(part) {
+				delta := seenThought.next(text)
+				if delta == "" {
+					continue
+				}
+				if openToolIndex >= 0 {
+					writeSSE(c.Writer, "content_block_stop", map[string]any{
+						"type":  "content_block_stop",
+						"index": openToolIndex,
+					})
+					openToolIndex = -1
+					seenToolJSON.reset()
+				}
+				if openBlockType != "thinking" {
+					if openBlockIndex >= 0 {
+						writeSSE(c.Writer, "content_block_stop", map[string]any{
+							"type":  "content_block_stop",
+							"index": openBlockIndex,
+						})
+					}
+					openBlockType = "thinking"
+					openBlockIndex = nextBlockIndex
+					nextBlockIndex++
