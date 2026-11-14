@@ -1,0 +1,39 @@
+				}
+
+				// Close any open text block before tool_use.
+				if openBlockIndex >= 0 {
+					writeSSE(c.Writer, "content_block_stop", map[string]any{
+						"type":  "content_block_stop",
+						"index": openBlockIndex,
+					})
+					openBlockIndex = -1
+					openBlockType = ""
+				}
+
+				// If we receive streamed tool args in pieces, keep a single tool block open and emit deltas.
+				if openToolIndex >= 0 && openToolName != name {
+					writeSSE(c.Writer, "content_block_stop", map[string]any{
+						"type":  "content_block_stop",
+						"index": openToolIndex,
+					})
+					openToolIndex = -1
+					openToolName = ""
+					seenToolJSON.reset()
+				}
+
+				if openToolIndex < 0 {
+					openToolID = "toolu_" + randomHex(8)
+					openToolIndex = nextBlockIndex
+					openToolName = name
+					nextBlockIndex++
+					sawToolUse = true
+
+					writeSSE(c.Writer, "content_block_start", map[string]any{
+						"type":  "content_block_start",
+						"index": openToolIndex,
+						"content_block": map[string]any{
+							"type":  "tool_use",
+							"id":    openToolID,
+							"name":  name,
+							"input": map[string]any{},
+						},

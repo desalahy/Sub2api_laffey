@@ -1,0 +1,25 @@
+		UpstreamModel:                 mappedModel,
+		UpstreamResponseModel:         observedUpstreamResponseModel(c),
+		UpstreamResponseModelConflict: observedUpstreamResponseModelConflict(c),
+		Stream:                        req.Stream,
+		Duration:                      time.Since(startTime),
+		FirstTokenMs:                  firstTokenMs,
+		ReasoningEffort:               extractGeminiReasoningEffortFromBody(geminiReq),
+		ClientDisconnect:              clientDisconnect,
+		ImageEndpoint:                 imageCount > 0,
+		ImageCount:                    imageCount,
+		ImageSize:                     imageSize,
+		ImageInputSize:                imageInputSize,
+	}, nil
+}
+
+func isGeminiSignatureRelatedError(respBody []byte) bool {
+	msg := strings.ToLower(strings.TrimSpace(extractAntigravityErrorMessage(respBody)))
+	if msg == "" {
+		msg = strings.ToLower(string(respBody))
+	}
+	return strings.Contains(msg, "thought_signature") || strings.Contains(msg, "signature")
+}
+
+func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.Context, account *Account, originalModel string, action string, stream bool, body []byte) (*ForwardResult, error) {
+	beginUpstreamResponseModelObservation(c)

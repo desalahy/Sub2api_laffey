@@ -4,6 +4,15 @@ This directory is the trusted branding layer for rebuilding Laffey API from a
 stable `Wei-Shaw/sub2api` release. Product files outside the allowlist come
 from the upstream release archive byte-for-byte.
 
+The allowlist also preserves the Gemini tool-call compatibility patch. Its
+owned `*_laffey.go` sources and regression tests live in `overlay/`; changes to
+the existing Gemini stream/collector functions use exact `gemini_*.before` and
+`gemini_*.after` transforms. The patch preserves independent parallel calls and
+all buffered response parts. Upstream context drift blocks regeneration until
+the patch is reviewed. It does not add signature caching or change tool-choice
+policy. Run the sync contract tests and the Gemini Go regression tests on each
+generated candidate before merging an upstream update.
+
 ## Directory contract
 
 - `brand.json` defines the brand values, preserved workflow files, exact

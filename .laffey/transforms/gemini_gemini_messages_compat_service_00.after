@@ -1,0 +1,31 @@
+	requestID := resp.Header.Get(requestIDHeader)
+	if requestID == "" {
+		requestID = resp.Header.Get("x-goog-request-id")
+	}
+	if requestID != "" {
+		c.Header("x-request-id", requestID)
+	}
+
+	var usage *ClaudeUsage
+	var firstTokenMs *int
+	clientDisconnect := false
+	streamFinished := false
+	var streamErr error
+	if req.Stream {
+		streamRes, err := s.handleStreamingResponse(c, resp, startTime, originalModel)
+		if err != nil && streamRes == nil {
+			return nil, err
+		}
+		streamErr = err
+		usage = streamRes.usage
+		firstTokenMs = streamRes.firstTokenMs
+		clientDisconnect = streamRes.clientDisconnect
+		streamFinished = streamRes.finished
+	} else {
+		if useUpstreamStream {
+			collected, usageObj, err := collectGeminiSSE(s.cfg, resp.Body, true)
+			if err != nil {
+				return nil, s.writeClaudeError(c, http.StatusBadGateway, "upstream_error", "Failed to read upstream stream")
+			}
+			collectedBytes, _ := json.Marshal(collected)
+			upstreamResponseModelObserverFromContext(c).ObserveGemini(collectedBytes)

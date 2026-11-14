@@ -1,0 +1,53 @@
+									if emitAnthropicEvent(&apicompat.AnthropicStreamEvent{
+										Type:  "content_block_start",
+										Index: &idx,
+										ContentBlock: &apicompat.AnthropicContentBlock{
+											Type: "text",
+											Text: "",
+										},
+									}) {
+										return streamResult(), nil
+									}
+								}
+								if emitAnthropicEvent(&apicompat.AnthropicStreamEvent{
+									Type:  "content_block_delta",
+									Index: &openBlockIndex,
+									Delta: &apicompat.AnthropicDelta{
+										Type: "text_delta",
+										Text: delta,
+									},
+								}) {
+									return streamResult(), nil
+								}
+								continue
+							}
+
+							if fc, ok := part["functionCall"].(map[string]any); ok && fc != nil {
+								name, _ := fc["name"].(string)
+								if strings.TrimSpace(name) == "" {
+									name = "tool"
+								}
+								if closeOpenBlock() {
+									return streamResult(), nil
+								}
+								if openToolIndex >= 0 {
+									if closeOpenTool() {
+										return streamResult(), nil
+									}
+								}
+								if openToolIndex < 0 {
+									idx := nextBlockIndex
+									nextBlockIndex++
+									openToolIndex = idx
+									sawToolUse = true
+									if emitAnthropicEvent(&apicompat.AnthropicStreamEvent{
+										Type:  "content_block_start",
+										Index: &idx,
+										ContentBlock: &apicompat.AnthropicContentBlock{
+											Type:  "tool_use",
+											ID:    "toolu_" + randomHex(8),
+											Name:  name,
+											Input: json.RawMessage(`{}`),
+										},
+									}) {
+										return streamResult(), nil

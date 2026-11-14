@@ -1,0 +1,86 @@
+}
+
+// geminiSSECollectStats 记录一次 SSE 聚合读到的 data 事件数，以及非 data 行的兜底内容。
+type geminiSSECollectStats struct {
+	dataEvents int
+	fallback   *geminiSSEFallbackBody
+}
+
+// collectGeminiSSEObserved 在聚合的同时把每个解包后的事件原文交给 observe（可为 nil）。
+func collectGeminiSSEObserved(cfg *config.Config, body io.Reader, isOAuth bool, observe func(rawBytes []byte)) (map[string]any, *ClaudeUsage, geminiSSECollectStats, error) {
+	reader := newBoundedSSELineReader(body, cfg)
+
+	accumulator := newGeminiResponseAccumulatorLaffey(resolveUpstreamResponseReadLimit(cfg))
+	usage := &ClaudeUsage{}
+	stats := geminiSSECollectStats{fallback: &geminiSSEFallbackBody{}}
+	finish := func() (map[string]any, *ClaudeUsage, geminiSSECollectStats, error) {
+		response, err := accumulator.Finish()
+		return response, usage, stats, err
+	}
+
+	for {
+		line, err := reader.ReadLineString()
+		if len(line) > 0 {
+			trimmed := strings.TrimRight(line, "\r\n")
+			if !strings.HasPrefix(trimmed, "data:") {
+				if stats.dataEvents == 0 {
+					stats.fallback.AddLine(trimmed)
+				}
+			} else {
+				payload := strings.TrimSpace(strings.TrimPrefix(trimmed, "data:"))
+				switch payload {
+				case "", "[DONE]":
+					if payload == "[DONE]" {
+						return finish()
+					}
+				default:
+					var parsed map[string]any
+					var rawBytes []byte
+					if isOAuth {
+						innerBytes, err := unwrapGeminiResponse([]byte(payload))
+						if err == nil {
+							rawBytes = innerBytes
+							parsed, _ = decodeGeminiObjectLaffey(innerBytes)
+						}
+					} else {
+						rawBytes = []byte(payload)
+						parsed, _ = decodeGeminiObjectLaffey(rawBytes)
+					}
+					if len(rawBytes) > 0 {
+						stats.dataEvents++
+						if observe != nil {
+							observe(rawBytes)
+						}
+					}
+					if parsed != nil {
+						if u := extractGeminiUsage(rawBytes); u != nil {
+							usage = u
+						}
+						if err := accumulator.Add(parsed); err != nil {
+							return nil, usage, stats, err
+						}
+					}
+				}
+			}
+		}
+
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, nil, stats, err
+		}
+	}
+
+	return finish()
+}
+
+func pickGeminiCollectResult(last map[string]any, lastWithParts map[string]any) map[string]any {
+	if lastWithParts != nil {
+		return lastWithParts
+	}
+	if last != nil {
+		return last
+	}
+	return map[string]any{}
+}

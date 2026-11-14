@@ -1,0 +1,31 @@
+		if policy == ErrorPolicySkipped && account.IsCustomErrorCodesEnabled() {
+			return nil, s.writeGeminiCustomCodeSkippedError(c, account, resp.StatusCode, requestID, evBody, func() {
+				_ = s.writeChatCompletionsError(c, http.StatusInternalServerError, "api_error", geminiCustomCodeSkippedClientMessage)
+			})
+		}
+		return nil, s.writeGeminiChatCompletionsMappedError(c, account, resp.StatusCode, requestID, evBody)
+	}
+
+	var usage *ClaudeUsage
+	var firstTokenMs *int
+	clientDisconnect := false
+	streamFinished := false
+	var streamErr error
+	if clientStream {
+		streamRes, err := s.handleChatCompletionsStreamingResponseFromGemini(c, resp, startTime, originalModel, account.Type == AccountTypeOAuth, includeUsage)
+		if err != nil && streamRes == nil {
+			return nil, err
+		}
+		streamErr = err
+		usage = streamRes.usage
+		firstTokenMs = streamRes.firstTokenMs
+		clientDisconnect = streamRes.clientDisconnect
+		streamFinished = streamRes.finished
+	} else if useUpstreamStream {
+		collected, usageObj, err := collectGeminiSSE(s.cfg, resp.Body, account.Type == AccountTypeOAuth)
+		if err != nil {
+			return nil, s.writeChatCompletionsError(c, http.StatusBadGateway, "upstream_error", "Failed to read upstream stream")
+		}
+		collectedBytes, _ := json.Marshal(collected)
+		chatResp, usageObj2, err := geminiResponseToChatCompletions(collected, originalModel, collectedBytes, usageObj)
+		if err != nil {

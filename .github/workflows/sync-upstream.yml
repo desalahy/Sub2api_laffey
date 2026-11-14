@@ -417,8 +417,9 @@ jobs:
 
           ## Removed Fork-only Implementations
 
-          - Local Grok, payment, OAuth, and gateway implementations are discarded.
+          - Fork-only implementations outside the declared overlay/transforms are discarded.
           - Where those capabilities exist in this release, the upstream implementation is retained unchanged.
+          - The declared Gemini tool-call compatibility patch and its regression tests are preserved.
           - Only the paths declared in .laffey/brand.json differ from the upstream commit.
 
           Merge remains manual and does not trigger a release.

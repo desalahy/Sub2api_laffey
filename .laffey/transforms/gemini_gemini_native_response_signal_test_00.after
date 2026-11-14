@@ -1,0 +1,36 @@
+func TestGeminiForwardNative_CountTokensBodyLeavesNoMark(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	svc := newGeminiSignalService("application/json", `{"totalTokens":12}`)
+	c, rec := newGeminiNativeTestContext(t)
+	_, err := svc.ForwardNative(context.Background(), c, geminiSignalTestAccount(),
+		"gemini-3.7-flash", "countTokens", false, geminiSignalTestRequest())
+	require.NoError(t, err)
+	require.Equal(t, `{"totalTokens":12}`, rec.Body.String())
+	require.Empty(t, GetOpsStreamErrors(c))
+	require.Empty(t, upstreamErrorEventsFromContext(t, c))
+}
+
+func TestCollectGeminiSSEObserved_PreservesTerminalChunkAndObservation(t *testing.T) {
+	var observed []string
+	collected, usage, stats, err := collectGeminiSSEObserved(nil, strings.NewReader(geminiSignalTestProhibitedSSE), false, func(raw []byte) {
+		observed = append(observed, string(raw))
+	})
+	require.NoError(t, err)
+	require.Len(t, observed, 3)
+	require.Equal(t, 3, stats.dataEvents)
+	require.Empty(t, stats.fallback.Bytes())
+	require.Equal(t, 21775, usage.InputTokens)
+
+	var hit bool
+	for _, raw := range observed {
+		if sig, ok := detectGeminiResponseSignal([]byte(raw)); ok {
+			hit = true
+			require.Equal(t, geminiSignalContentFilter, sig.Kind)
+		}
+	}
+	require.True(t, hit)
+	// The terminal metadata survives aggregation while the observer still sees every event.
+	aggregated, err := json.Marshal(collected)
+	require.NoError(t, err)
+	require.Contains(t, string(aggregated), "PROHIBITED_CONTENT")
+}

@@ -1,0 +1,25 @@
+		Usage:            *usage,
+		Model:            originalModel,
+		UpstreamModel:    mappedModel,
+		Stream:           clientStream,
+		Duration:         time.Since(startTime),
+		FirstTokenMs:     firstTokenMs,
+		ReasoningEffort:  reasoningEffort,
+		ImageEndpoint:    imageCount > 0,
+		ImageCount:       imageCount,
+		ImageSize:        imageSize,
+		ImageInputSize:   imageInputSize,
+		ClientDisconnect: clientDisconnect,
+	}, streamErr
+}
+
+func (s *GeminiMessagesCompatService) buildGeminiChatCompletionsUpstreamRequestFunc(
+	account *Account,
+	mappedModel string,
+	geminiReq []byte,
+	clientStream bool,
+	useUpstreamStream bool,
+) (func(context.Context) (*http.Request, string, error), string) {
+	switch account.Type {
+	case AccountTypeAPIKey:
+		return func(ctx context.Context) (*http.Request, string, error) {

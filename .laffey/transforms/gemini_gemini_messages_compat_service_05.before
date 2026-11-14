@@ -1,0 +1,53 @@
+
+				delta := seenToolJSON.next(argsJSONText)
+				if delta != "" {
+					writeSSE(c.Writer, "content_block_delta", map[string]any{
+						"type":  "content_block_delta",
+						"index": openToolIndex,
+						"delta": map[string]any{
+							"type":         "input_json_delta",
+							"partial_json": delta,
+						},
+					})
+				}
+				flusher.Flush()
+			}
+		}
+
+		if u := extractGeminiUsage(unwrappedBytes); u != nil {
+			usage = *u
+		}
+
+		// Process the final unterminated line at EOF as well.
+		if errors.Is(err, io.EOF) {
+			break
+		}
+	}
+
+	if openBlockIndex >= 0 {
+		writeSSE(c.Writer, "content_block_stop", map[string]any{
+			"type":  "content_block_stop",
+			"index": openBlockIndex,
+		})
+	}
+	if openToolIndex >= 0 {
+		writeSSE(c.Writer, "content_block_stop", map[string]any{
+			"type":  "content_block_stop",
+			"index": openToolIndex,
+		})
+	}
+
+	stopReason := mapGeminiFinishReasonToClaudeStopReason(finishReason)
+	if sawToolUse {
+		stopReason = "tool_use"
+	}
+
+	usageObj := map[string]any{
+		"output_tokens": usage.OutputTokens,
+	}
+	if usage.InputTokens > 0 {
+		usageObj["input_tokens"] = usage.InputTokens
+	}
+	writeSSE(c.Writer, "message_delta", map[string]any{
+		"type": "message_delta",
+		"delta": map[string]any{

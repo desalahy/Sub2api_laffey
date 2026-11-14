@@ -1,0 +1,24 @@
+	}
+
+	anthState := apicompat.NewAnthropicEventToResponsesState()
+	anthState.Model = originalModel
+	ccState := apicompat.NewResponsesEventToChatState()
+	ccState.Model = originalModel
+	ccState.IncludeUsage = includeUsage
+
+	var usage ClaudeUsage
+	var firstTokenMs *int
+	firstChunk := true
+	finishReason := ""
+	clientDisconnect := false
+	streamResult := func() *geminiStreamResult {
+		return &geminiStreamResult{usage: &usage, firstTokenMs: firstTokenMs, clientDisconnect: clientDisconnect, finished: finishReason != ""}
+	}
+
+	writeChatChunk := func(chunk apicompat.ChatCompletionsChunk) bool {
+		sse, err := apicompat.ChatChunkToSSE(chunk)
+		if err != nil {
+			return false
+		}
+		if _, err := io.WriteString(c.Writer, sse); err != nil {
+			clientDisconnect = true

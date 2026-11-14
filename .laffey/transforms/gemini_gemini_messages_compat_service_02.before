@@ -1,0 +1,99 @@
+				"input_tokens":  0,
+				"output_tokens": 0,
+			},
+		},
+	}
+	writeSSE(c.Writer, "message_start", messageStart)
+	flusher.Flush()
+
+	var firstTokenMs *int
+	var usage ClaudeUsage
+	finishReason := ""
+	sawToolUse := false
+
+	nextBlockIndex := 0
+	openBlockIndex := -1
+	openBlockType := ""
+	var seenText geminiTextDelta
+	var seenThought geminiTextDelta
+	openToolIndex := -1
+	openToolID := ""
+	openToolName := ""
+	var seenToolJSON geminiTextDelta
+
+	reader := newBoundedSSELineReader(resp.Body, s.cfg)
+	for {
+		line, err := reader.ReadLineString()
+		if err != nil && !errors.Is(err, io.EOF) {
+			if geminiStreamAbortedWithBillableOutput(c, err, &usage) {
+				logger.LegacyPrintf("service.gemini_messages_compat", "[GeminiAPI] Client disconnected during messages stream, billing collected usage: %v", err)
+				return &geminiStreamResult{
+					usage:            &usage,
+					firstTokenMs:     firstTokenMs,
+					clientDisconnect: true,
+					finished:         finishReason != "",
+				}, nil
+			}
+			return nil, fmt.Errorf("stream read error: %w", err)
+		}
+
+		if !strings.HasPrefix(line, "data:") {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			continue
+		}
+		payload := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if payload == "" || payload == "[DONE]" {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			continue
+		}
+
+		unwrappedBytes, err := unwrapGeminiResponse([]byte(payload))
+		if err != nil {
+			continue
+		}
+		observer := upstreamResponseModelObserverFromContext(c)
+		if observer == nil {
+			observer = beginUpstreamResponseModelObservation(c)
+		}
+		observer.ObserveGemini(unwrappedBytes)
+		observeGeminiImageOutputs(c, unwrappedBytes)
+
+		var geminiResp map[string]any
+		if err := json.Unmarshal(unwrappedBytes, &geminiResp); err != nil {
+			continue
+		}
+
+		if fr := extractGeminiFinishReason(geminiResp); fr != "" {
+			finishReason = fr
+		}
+
+		parts := extractGeminiParts(geminiResp)
+		for _, part := range parts {
+			if text, ok := part["text"].(string); ok && isGeminiThoughtPart(part) {
+				delta := seenThought.next(text)
+				if delta == "" {
+					continue
+				}
+				if openToolIndex >= 0 {
+					writeSSE(c.Writer, "content_block_stop", map[string]any{
+						"type":  "content_block_stop",
+						"index": openToolIndex,
+					})
+					openToolIndex = -1
+					openToolName = ""
+					seenToolJSON.reset()
+				}
+				if openBlockType != "thinking" {
+					if openBlockIndex >= 0 {
+						writeSSE(c.Writer, "content_block_stop", map[string]any{
+							"type":  "content_block_stop",
+							"index": openBlockIndex,
+						})
+					}
+					openBlockType = "thinking"
+					openBlockIndex = nextBlockIndex
+					nextBlockIndex++

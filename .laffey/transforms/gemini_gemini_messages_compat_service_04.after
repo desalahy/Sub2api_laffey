@@ -1,0 +1,37 @@
+				}
+
+				// Close any open text block before tool_use.
+				if openBlockIndex >= 0 {
+					writeSSE(c.Writer, "content_block_stop", map[string]any{
+						"type":  "content_block_stop",
+						"index": openBlockIndex,
+					})
+					openBlockIndex = -1
+					openBlockType = ""
+				}
+
+				// The normalizer has assembled one complete, independently identified call.
+				if openToolIndex >= 0 {
+					writeSSE(c.Writer, "content_block_stop", map[string]any{
+						"type":  "content_block_stop",
+						"index": openToolIndex,
+					})
+					openToolIndex = -1
+					seenToolJSON.reset()
+				}
+
+				if openToolIndex < 0 {
+					openToolID = "toolu_" + randomHex(8)
+					openToolIndex = nextBlockIndex
+					nextBlockIndex++
+					sawToolUse = true
+
+					writeSSE(c.Writer, "content_block_start", map[string]any{
+						"type":  "content_block_start",
+						"index": openToolIndex,
+						"content_block": map[string]any{
+							"type":  "tool_use",
+							"id":    openToolID,
+							"name":  name,
+							"input": map[string]any{},
+						},
