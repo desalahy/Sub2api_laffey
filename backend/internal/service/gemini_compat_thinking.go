@@ -17,6 +17,7 @@ const (
 	geminiThinkingParamNone geminiThinkingParam = iota
 	geminiThinkingParamBudget
 	geminiThinkingParamLevel
+	geminiThinkingParamExtendedLevel
 )
 
 const (
@@ -27,7 +28,7 @@ const (
 )
 
 // geminiThinkingParamForModel 按上游模型名判断思考参数形态：2.5 系列用 thinkingBudget，
-// 3 及以上用 thinkingLevel。2.5 之前的版本、无法解析版本号的名字、图像/语音/向量类模型
+// 3 及以上用 thinkingLevel，4 及以上保留显式档位由上游校验。2.5 之前的版本、无法解析版本号的名字、图像/语音/向量类模型
 // 不写思考参数。
 func geminiThinkingParamForModel(model string) geminiThinkingParam {
 	name := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(model)), "models/")
@@ -53,6 +54,8 @@ func geminiThinkingParamForModel(model string) geminiThinkingParam {
 		}
 	}
 	switch {
+	case major >= 4:
+		return geminiThinkingParamExtendedLevel
 	case major >= 3:
 		return geminiThinkingParamLevel
 	case major == 2 && minor >= 5:
@@ -77,12 +80,12 @@ func geminiModelNameCarriesThinkingTier(model string) bool {
 // claudeThinkingIntent 是 Anthropic 请求体里与思考相关的意图。
 type claudeThinkingIntent struct {
 	thinkingType string // enabled / adaptive / disabled / 空
-	tier         string // minimal / low / medium / high / 空
+	tier         string // minimal / low / medium / high / xhigh / max / 空
 	budgetTokens int    // thinking.type=enabled 时的 budget_tokens
 }
 
 // parseClaudeThinkingIntent 读取 Anthropic 请求的思考参数。thinking.type=disabled 优先于
-// output_config.effort；effort 归一到 minimal/low/medium/high，未识别的取值视为未指定。
+// output_config.effort；保留有效 effort，具体模型的兼容映射延迟到输出转换。
 func parseClaudeThinkingIntent(claudeBody []byte) claudeThinkingIntent {
 	intent := claudeThinkingIntent{
 		thinkingType: strings.ToLower(strings.TrimSpace(gjson.GetBytes(claudeBody, "thinking.type").String())),
@@ -98,8 +101,12 @@ func parseClaudeThinkingIntent(claudeBody []byte) claudeThinkingIntent {
 		intent.tier = "low"
 	case "medium":
 		intent.tier = "medium"
-	case "high", "xhigh", "max":
+	case "high":
 		intent.tier = "high"
+	case "xhigh":
+		intent.tier = "xhigh"
+	case "max":
+		intent.tier = "max"
 	}
 	if intent.thinkingType == "enabled" {
 		intent.budgetTokens = int(gjson.GetBytes(claudeBody, "thinking.budget_tokens").Int())
@@ -118,10 +125,17 @@ func claudeRequestEnablesThinking(claudeBody []byte) bool {
 }
 
 // geminiThinkingLevelFor 把思考意图映射为 thinkingLevel；返回空串表示交给模型默认档位。
+// Gemini 4+ 的显式档位原样交给上游校验，不静默降档；旧模型仍使用原有兼容规则。
 // minimal 只发给 flash 系列，其余模型用 low；medium 只发给 flash 系列与 Gemini 3.1 Pro，
 // 其余模型用 high（Gemini 3 及以上未指定档位时的默认档位）。
 func geminiThinkingLevelFor(model string, intent claudeThinkingIntent) string {
 	tier := intent.tier
+	if tier != "" && tier != "minimal" && geminiThinkingParamForModel(model) == geminiThinkingParamExtendedLevel {
+		return tier
+	}
+	if tier == "xhigh" || tier == "max" {
+		tier = "high"
+	}
 	if tier == "" && intent.budgetTokens > 0 {
 		switch {
 		case intent.budgetTokens <= 1024:
@@ -166,7 +180,7 @@ func geminiThinkingBudgetFor(model string, intent claudeThinkingIntent) (budget 
 		budget = 1024
 	case "medium":
 		budget = 8192
-	case "high":
+	case "high", "xhigh", "max":
 		budget = maxBudget
 	default:
 		if intent.budgetTokens <= 0 {
@@ -191,7 +205,7 @@ func applyGeminiCompatThinkingConfig(geminiReq, claudeBody []byte, upstreamModel
 	thinkingOff := false
 	if !geminiModelNameCarriesThinkingTier(upstreamModel) {
 		switch param {
-		case geminiThinkingParamLevel:
+		case geminiThinkingParamLevel, geminiThinkingParamExtendedLevel:
 			if level := geminiThinkingLevelFor(upstreamModel, intent); level != "" {
 				out = setGeminiThinkingField(out, "thinkingLevel", level)
 			}

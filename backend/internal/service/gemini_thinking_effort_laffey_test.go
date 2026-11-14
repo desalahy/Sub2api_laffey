@@ -110,3 +110,46 @@ func TestGeminiThinkingEffortLaffey_ForwardPreservesExplicitLevel(t *testing.T) 
 		}
 	}
 }
+
+func TestGeminiThinkingEffortLaffey_SignatureRetryPreservesXHigh(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	upstream := &queuedHTTPUpstreamStub{responses: []*http.Response{
+		{
+			StatusCode: http.StatusBadRequest,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(`{"error":{"code":400,"message":"Function call is missing a thought_signature","status":"INVALID_ARGUMENT"}}`)),
+		},
+		{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"text/event-stream"}},
+			Body:       io.NopCloser(strings.NewReader("data: " + `{"candidates":[{"content":{"parts":[{"text":"ok"}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":3,"candidatesTokenCount":1}}` + "\n\n")),
+		},
+	}}
+	svc := &GeminiMessagesCompatService{httpUpstream: upstream, cfg: &config.Config{}}
+	body := []byte(`{"model":"gemini-4-hydrogen","stream":true,"max_tokens":256,"thinking":{"type":"adaptive"},"output_config":{"effort":"xhigh"},"messages":[{"role":"user","content":"hello"}]}`)
+	c, _ := newAntigravityCompatContext(http.MethodPost, "/v1/messages", body)
+	result, err := svc.Forward(context.Background(), c, geminiCompatThinkingTestAccount(), body)
+	require.NoError(t, err)
+	require.Len(t, upstream.requestBodies, 2)
+	for _, sent := range upstream.requestBodies {
+		require.Equal(t, "xhigh", gjson.GetBytes(sent, "generationConfig.thinkingConfig.thinkingLevel").String())
+	}
+	require.Equal(t, "xhigh", optionalStringValue(result.ReasoningEffort))
+}
+
+func TestGeminiThinkingEffortLaffey_UnsupportedLevelIsNotSilentlyDowngraded(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	upstream := &queuedHTTPUpstreamStub{responses: []*http.Response{{
+		StatusCode: http.StatusBadRequest,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(strings.NewReader(`{"error":{"code":400,"message":"Invalid thinkingLevel xhigh","status":"INVALID_ARGUMENT"}}`)),
+	}}}
+	svc := &GeminiMessagesCompatService{httpUpstream: upstream, cfg: &config.Config{}}
+	body := []byte(`{"model":"gemini-4-carbon","reasoning_effort":"xhigh","messages":[{"role":"user","content":"hello"}]}`)
+	c, _ := newAntigravityCompatContext(http.MethodPost, "/v1/chat/completions", body)
+	result, err := svc.ForwardAsChatCompletions(context.Background(), c, geminiCompatThinkingTestAccount(), body)
+	require.Error(t, err)
+	require.Nil(t, result)
+	require.Len(t, upstream.requestBodies, 1, "unsupported tiers must not retry a lower level")
+	require.Equal(t, "xhigh", gjson.GetBytes(upstream.requestBodies[0], "generationConfig.thinkingConfig.thinkingLevel").String())
+}

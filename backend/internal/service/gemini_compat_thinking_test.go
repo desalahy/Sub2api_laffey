@@ -45,7 +45,7 @@ func TestApplyGeminiCompatThinkingConfig(t *testing.T) {
 		{name: "unknown effort ignored", model: "gemini-3.7-flash", claudeBody: `{"output_config":{"effort":"turbo"}}`, wantNoConfig: true},
 		{name: "level with thoughts", model: "gemini-3.8-flash", claudeBody: `{"output_config":{"effort":"high"}}`, includeThoughts: true, wantLevel: "high", wantThoughts: true},
 		{name: "gemini 4 uses level", model: "gemini-4-argon", claudeBody: `{"output_config":{"effort":"low"}}`, wantLevel: "low"},
-		{name: "medium outside verified models becomes high", model: "gemini-4-argon", claudeBody: `{"output_config":{"effort":"medium"}}`, wantLevel: "high"},
+		{name: "gemini 4 explicit medium preserved", model: "gemini-4-argon", claudeBody: `{"output_config":{"effort":"medium"}}`, wantLevel: "medium"},
 		{name: "medium budget outside verified models becomes high", model: "gemini-4-argon", claudeBody: `{"thinking":{"type":"enabled","budget_tokens":4096}}`, wantLevel: "high"},
 		{name: "medium on unverified pro becomes high", model: "gemini-3.5-pro", claudeBody: `{"output_config":{"effort":"medium"}}`, wantLevel: "high"},
 		{name: "medium on flash lite", model: "gemini-3.1-flash-lite", claudeBody: `{"output_config":{"effort":"medium"}}`, wantLevel: "medium"},

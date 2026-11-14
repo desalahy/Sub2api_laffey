@@ -97,3 +97,11 @@ fork revision, not a prerelease channel: the built-in updater uses GitHub's
 `releases/latest` endpoint, which excludes prereleases. Simple Release includes
 the Linux amd64 archive and `checksums.txt` as well as the GHCR image so the
 site's updater can download the new binary.
+
+Gemini 4 and later compatibility requests preserve explicit `medium`, `high`,
+`xhigh`, and `max` thinking levels. Chat requests retain their original effort
+through the intermediate Anthropic representation, and usage records reflect
+the forwarded level. Unsupported levels are left to upstream validation rather
+than silently downgraded. Older Gemini models keep their existing level/budget
+compatibility rules. These changes and their forwarding regressions are retained
+by the Gemini exact transforms and overlay.
