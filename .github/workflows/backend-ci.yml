@@ -23,6 +23,17 @@ jobs:
           expected="$(awk '$1 == "go" { print $2; exit }' backend/go.mod)"
           actual="$(go env GOVERSION | sed 's/^go//')"
           test "$actual" = "$expected"
+      - name: Gemini thinking effort regression
+        working-directory: backend
+        run: go test -tags=unit ./internal/service -run '^TestGeminiThinkingEffortLaffey_' -count=1
+      - name: Check Gemini thinking formatting
+        working-directory: backend
+        run: |
+          files="$(gofmt -l internal/service/gemini_thinking_effort_laffey_test.go internal/service/gemini_compat_thinking.go internal/service/gemini_compat_thinking_test.go internal/service/gemini_reasoning_effort.go internal/service/gemini_native_reasoning_pricing_test.go internal/service/gemini_chat_completions_compat_service.go)"
+          if [ -n "$files" ]; then
+            printf '%s\n' "$files"
+            exit 1
+          fi
       - name: Unit tests
         working-directory: backend
         run: make test-unit

@@ -1,0 +1,50 @@
+		minPositive = gemini25FlashLiteMinThinkingBudget
+	}
+	switch intent.tier {
+	case "minimal":
+		if isPro {
+			return gemini25ProMinThinkingBudget, true
+		}
+		return 0, true
+	case "low":
+		budget = 1024
+	case "medium":
+		budget = 8192
+	case "high":
+		budget = maxBudget
+	default:
+		if intent.budgetTokens <= 0 {
+			return 0, false
+		}
+		budget = intent.budgetTokens
+	}
+	budget = min(max(budget, minPositive), maxBudget)
+	return budget, true
+}
+
+// applyGeminiCompatThinkingConfig 把兼容入口（Anthropic 形态请求体）的思考意图写进转换后的
+// Gemini 请求 generationConfig.thinkingConfig。includeThoughts 为 true 时要求上游返回
+// 思考摘要（thought=true 的 part）；思考被关闭（预算为 0）时不要求。
+func applyGeminiCompatThinkingConfig(geminiReq, claudeBody []byte, upstreamModel string, includeThoughts bool) []byte {
+	param := geminiThinkingParamForModel(upstreamModel)
+	if param == geminiThinkingParamNone {
+		return geminiReq
+	}
+	intent := parseClaudeThinkingIntent(claudeBody)
+	out := geminiReq
+	thinkingOff := false
+	if !geminiModelNameCarriesThinkingTier(upstreamModel) {
+		switch param {
+		case geminiThinkingParamLevel:
+			if level := geminiThinkingLevelFor(upstreamModel, intent); level != "" {
+				out = setGeminiThinkingField(out, "thinkingLevel", level)
+			}
+		case geminiThinkingParamBudget:
+			if budget, ok := geminiThinkingBudgetFor(upstreamModel, intent); ok {
+				out = setGeminiThinkingField(out, "thinkingBudget", budget)
+				thinkingOff = budget == 0
+			}
+		}
+	}
+	if includeThoughts && !thinkingOff {
+		out = setGeminiThinkingField(out, "includeThoughts", true)

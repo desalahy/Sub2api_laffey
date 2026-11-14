@@ -86,7 +86,13 @@
     "docs/superpowers/specs/2026-11-14-gemini-tool-call-compat-design.md",
     "docs/superpowers/plans/2026-11-14-gemini-tool-call-compat.md",
     "backend/internal/handler/gateway_handler.go",
-    "backend/internal/handler/gemini_stream_usage_laffey_test.go"
+    "backend/internal/handler/gemini_stream_usage_laffey_test.go",
+    "backend/internal/service/gemini_compat_thinking.go",
+    "backend/internal/service/gemini_compat_thinking_test.go",
+    "backend/internal/service/gemini_reasoning_effort.go",
+    "backend/internal/service/gemini_native_reasoning_pricing_test.go",
+    "backend/internal/service/gemini_thinking_effort_laffey_test.go",
+    "docs/superpowers/plans/2026-11-14-gemini-thinking-effort.md"
   ],
   "brand": {
     "default_site_name": "Laffey API",
@@ -99,7 +105,8 @@
   "preserve_paths": [
     ".github/workflows",
     "docs/superpowers/specs/2026-11-14-gemini-tool-call-compat-design.md",
-    "docs/superpowers/plans/2026-11-14-gemini-tool-call-compat.md"
+    "docs/superpowers/plans/2026-11-14-gemini-tool-call-compat.md",
+    "docs/superpowers/plans/2026-11-14-gemini-thinking-effort.md"
   ],
   "replacements": [
     {
@@ -674,6 +681,12 @@
     },
     {
       "path": "backend/internal/service/gemini_chat_completions_compat_service.go",
+      "find_file": "transforms/gemini_gemini_chat_completions_compat_service_08.before",
+      "replace_file": "transforms/gemini_gemini_chat_completions_compat_service_08.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/gemini_chat_completions_compat_service.go",
       "find_file": "transforms/gemini_gemini_chat_completions_compat_service_00.before",
       "replace_file": "transforms/gemini_gemini_chat_completions_compat_service_00.after",
       "expected_count": 1
@@ -784,6 +797,48 @@
       "path": "backend/internal/handler/gateway_handler.go",
       "find_file": "transforms/gemini_gateway_handler_00.before",
       "replace_file": "transforms/gemini_gateway_handler_00.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/gemini_compat_thinking.go",
+      "find_file": "transforms/gemini_gemini_compat_thinking_00.before",
+      "replace_file": "transforms/gemini_gemini_compat_thinking_00.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/gemini_compat_thinking.go",
+      "find_file": "transforms/gemini_gemini_compat_thinking_01.before",
+      "replace_file": "transforms/gemini_gemini_compat_thinking_01.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/gemini_compat_thinking.go",
+      "find_file": "transforms/gemini_gemini_compat_thinking_02.before",
+      "replace_file": "transforms/gemini_gemini_compat_thinking_02.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/gemini_compat_thinking_test.go",
+      "find_file": "transforms/gemini_gemini_compat_thinking_test_00.before",
+      "replace_file": "transforms/gemini_gemini_compat_thinking_test_00.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/gemini_reasoning_effort.go",
+      "find_file": "transforms/gemini_gemini_reasoning_effort_00.before",
+      "replace_file": "transforms/gemini_gemini_reasoning_effort_00.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/gemini_native_reasoning_pricing_test.go",
+      "find_file": "transforms/gemini_gemini_native_reasoning_pricing_test_00.before",
+      "replace_file": "transforms/gemini_gemini_native_reasoning_pricing_test_00.after",
+      "expected_count": 1
+    },
+    {
+      "path": "backend/internal/service/gemini_native_reasoning_pricing_test.go",
+      "find_file": "transforms/gemini_gemini_native_reasoning_pricing_test_01.before",
+      "replace_file": "transforms/gemini_gemini_native_reasoning_pricing_test_01.after",
       "expected_count": 1
     }
   ],

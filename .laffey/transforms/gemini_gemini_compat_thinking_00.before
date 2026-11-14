@@ -1,0 +1,35 @@
+
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
+)
+
+// geminiThinkingParam 是上游模型接受的思考参数形态。
+type geminiThinkingParam int
+
+const (
+	geminiThinkingParamNone geminiThinkingParam = iota
+	geminiThinkingParamBudget
+	geminiThinkingParamLevel
+)
+
+const (
+	gemini25ProMaxThinkingBudget       = 32768
+	gemini25ProMinThinkingBudget       = 128
+	gemini25FlashMaxThinkingBudget     = 24576
+	gemini25FlashLiteMinThinkingBudget = 512
+)
+
+// geminiThinkingParamForModel 按上游模型名判断思考参数形态：2.5 系列用 thinkingBudget，
+// 3 及以上用 thinkingLevel。2.5 之前的版本、无法解析版本号的名字、图像/语音/向量类模型
+// 不写思考参数。
+func geminiThinkingParamForModel(model string) geminiThinkingParam {
+	name := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(model)), "models/")
+	rest, ok := strings.CutPrefix(name, "gemini-")
+	if !ok {
+		return geminiThinkingParamNone
+	}
+	for _, kind := range []string{"image", "tts", "embedding", "live", "audio"} {
+		if strings.Contains(rest, kind) {
+			return geminiThinkingParamNone
+		}
+	}
