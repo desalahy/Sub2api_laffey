@@ -23,6 +23,9 @@ jobs:
           expected="$(awk '$1 == "go" { print $2; exit }' backend/go.mod)"
           actual="$(go env GOVERSION | sed 's/^go//')"
           test "$actual" = "$expected"
+      - name: Gemini thinking effort regression
+        working-directory: backend
+        run: go test -tags=unit ./internal/service -run '^TestGeminiThinkingEffortLaffey_' -count=1
       - name: Unit tests
         working-directory: backend
         run: make test-unit
