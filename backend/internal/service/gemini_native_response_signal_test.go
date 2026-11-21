@@ -499,7 +499,7 @@ func TestGeminiForwardNative_CountTokensBodyLeavesNoMark(t *testing.T) {
 	require.Empty(t, upstreamErrorEventsFromContext(t, c))
 }
 
-func TestCollectGeminiSSEObserved_PreservesTerminalChunkAndObservation(t *testing.T) {
+func TestCollectGeminiSSEObserved_SeesTerminalChunkEvenWhenAggregateDropsIt(t *testing.T) {
 	var observed []string
 	collected, usage, stats, err := collectGeminiSSEObserved(nil, strings.NewReader(geminiSignalTestProhibitedSSE), false, func(raw []byte) {
 		observed = append(observed, string(raw))
@@ -518,8 +518,8 @@ func TestCollectGeminiSSEObserved_PreservesTerminalChunkAndObservation(t *testin
 		}
 	}
 	require.True(t, hit)
-	// The terminal metadata survives aggregation while the observer still sees every event.
+	// 聚合结果沿用"最后一个带 parts 的块"，本身不携带末块的 finishReason；检测必须逐事件进行。
 	aggregated, err := json.Marshal(collected)
 	require.NoError(t, err)
-	require.Contains(t, string(aggregated), "PROHIBITED_CONTENT")
+	require.NotContains(t, string(aggregated), "PROHIBITED_CONTENT")
 }

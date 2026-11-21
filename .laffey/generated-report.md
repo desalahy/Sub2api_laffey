@@ -1,10 +1,10 @@
 # Laffey Upstream Sync Report
 
 - Upstream repository: `Wei-Shaw/sub2api`
-- Upstream tag: `v0.2.20`
-- Upstream commit: `dab829a4e9b7d1cc307189aea8b0319eb29e29d0`
-- Base commit: `4921c612f808a211325b23f64d0753449cf5b6e3`
-- Allowlisted brand differences: `146`
+- Upstream tag: `v0.2.24`
+- Upstream commit: `5c2982a81b46e2142d0143d2f83c1ce9c4da1d24`
+- Base commit: `4dc86295f0c6bf02c71799708b696ab0ef4ec3fb`
+- Allowlisted brand differences: `148`
 
 ## Brand Difference Paths
 
@@ -64,6 +64,8 @@
 - `.laffey/transforms/content_site_name.before`
 - `.laffey/transforms/setting_get_site.after`
 - `.laffey/transforms/setting_get_site.before`
+- `.laffey/transforms/simple_release_archives.after`
+- `.laffey/transforms/simple_release_archives.before`
 - `.laffey/transforms/update_versions.after`
 - `.laffey/transforms/update_versions.before`
 - `.laffey/upstream.lock.json`
